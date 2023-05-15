@@ -2,3 +2,4 @@ Actuator
 GwINSTEK
 HVcontrol
 ScoutScale
+__init__

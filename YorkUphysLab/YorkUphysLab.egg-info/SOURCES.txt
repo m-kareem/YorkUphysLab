@@ -1,7 +1,8 @@
-LICENSE.txt
+LICENSE
 README.md
 pyproject.toml
 setup.cfg
+src/__init__.py
 src/Actuator/Actuator.py
 src/Actuator/__init__.py
 src/GwINSTEK/GPD3303D.py
@@ -10,8 +11,8 @@ src/HVcontrol/HV_control.py
 src/HVcontrol/__init__.py
 src/ScoutScale/ScoutSTX.py
 src/ScoutScale/__init__.py
-src/YorkUphysLabs.egg-info/PKG-INFO
-src/YorkUphysLabs.egg-info/SOURCES.txt
-src/YorkUphysLabs.egg-info/dependency_links.txt
-src/YorkUphysLabs.egg-info/requires.txt
-src/YorkUphysLabs.egg-info/top_level.txt
+src/YorkUphysLab.egg-info/PKG-INFO
+src/YorkUphysLab.egg-info/SOURCES.txt
+src/YorkUphysLab.egg-info/dependency_links.txt
+src/YorkUphysLab.egg-info/requires.txt
+src/YorkUphysLab.egg-info/top_level.txt

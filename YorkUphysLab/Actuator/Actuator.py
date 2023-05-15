@@ -1,5 +1,5 @@
 import nidaqmx
-import GwINSTEK.GPD3303D as PSU
+import YorkUphysLab.GwINSTEK.GPD3303D as PSU
 import time
 
 
@@ -40,11 +40,13 @@ class Actuator:
 
     def switch_on(self):
         self.psu.set_voltage(1, 12)
-        self.psu.set_current(1, 0.38)
+        self.psu.set_current(1, 0.4)
         self.psu.enable_output()
     
+    '''
     def switch_off(self):
         self.psu.disable_output()
+    '''
 
 #==============================================================================    
 
@@ -65,7 +67,7 @@ if __name__ == "__main__":
         print(f'position moved to = {actuator.get_position()} mm')
         
         time.sleep(2)
-        actuator.switch_off()
+        psu.disable_output()
         psu.close_connection()
     else:
         print('No PSU found')

@@ -35,6 +35,11 @@ class ScoutSTX:
     def close_connection(self):
         # Close serial connection
         self.inst.close()
+    
+    def is_connected(self):
+        if self.inst is None:
+            return False
+        return self.inst.is_open
 
     def read_weight_time(self):
         # Send command to scale to read weight

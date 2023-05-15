@@ -1,4 +1,4 @@
-import GwINSTEK.GPD3303D as PSU
+import YorkUphysLab.GwINSTEK.GPD3303D as PSU
 import time
 
 
@@ -9,15 +9,17 @@ class HV_control:
 
     def switch_on(self):
         self.psu.set_voltage(1, 12)
-        self.psu.set_current(1, 0.38)
+        self.psu.set_current(1, 0.4)
         self.psu.set_voltage(2, 1)
         self.psu.set_current(2, 0.01)
         
         self.psu.enable_output()
     
+    '''
     def switch_off(self):
         self.psu.disable_output()
-
+    '''
+    
     def set_HV_kV(self, voltage):
         if 0 <= voltage <= 3:
             # Vctrl equation is a linear fit of the data below
@@ -57,7 +59,7 @@ if __name__ == "__main__":
         time.sleep(2)
         actual_HV = HV.get_HV_kv()
         print(f'Actual HV = {actual_HV} kV')
-        HV.switch_off()
+        psu.disable_output()
         psu.close_connection()
     
     else:

@@ -77,6 +77,8 @@ class GPD3303D:
             self.inst.close()
     
     def is_connected(self):
+        if self.inst is None:
+            return False
         return self.inst.is_open 
     
 #==============================================================================    
