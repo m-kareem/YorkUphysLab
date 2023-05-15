@@ -8,7 +8,7 @@ This is package that includes the required drivers to controle some of the hardw
 
 ## How to use
 
-See the examples script: YorkUphysLab_test.py
+See the examples script: YorkUphysLab_example.py
 
 
 ## Developed by:

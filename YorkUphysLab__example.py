@@ -26,17 +26,21 @@ psu = PSU.GPD3303D()
 
 if psu.is_connected():
     # 3. Test the Actuator class
+    # you can find the DAQ name in the NI MAX software
     DAQ_mame = 'SDAQ-25'
+    
     actuator = ACT.Actuator(DAQ_mame, psu)
     actuator.switch_on()
-    actuator.set_position(50)
+    actuator.set_position(10)
     time.sleep(2)
     print(f'New position: {actuator.get_position()} mm')
+
+
 
     # 4. Test the HV_control class
     hv = HV.HV_control(psu)
     hv.switch_on()
-    hv.set_HV_kV(0.8)
+    hv.set_HV_kV(1.8)
     time.sleep(2)
     actual_HV = hv.get_HV_kv()
     print(f'Actual HV = {actual_HV} kV')
