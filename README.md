@@ -1,6 +1,6 @@
 # York University physics lab
 
-This package includes the required drivers to controle some of the hardwares in physics labs at York University.
+This package includes the required drivers to control some of the hardwares in physics labs at York University.
 
 ## How to install
 
