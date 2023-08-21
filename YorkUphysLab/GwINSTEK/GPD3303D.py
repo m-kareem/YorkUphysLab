@@ -15,6 +15,13 @@ class GPD3303D:
             self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
         else:
             self.inst = self.port_search(self.keyword)
+        
+        if self.inst is not None:
+            print(f'Connected to {self.get_idn()}')
+            return True
+        else:
+            print('PSU Connection failed.')
+            return False
 
     def port_search(self, keyword):
         print('Searching for the device...')

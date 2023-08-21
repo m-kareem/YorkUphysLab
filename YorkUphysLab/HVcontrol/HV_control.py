@@ -8,16 +8,17 @@ class HV_control:
     
 
     def switch_on(self):
-        if not self.psu.is_connected():
-            self.psu.connect()
-        self.psu.set_voltage(1, 12)
-        self.psu.set_current(1, 0.4)
-        self.psu.set_voltage(2, 1)
-        self.psu.set_current(2, 0.01)
-        
-        self.psu.enable_output()
-        print('HV switched ON.')
-    
+        if self.psu.is_connected():
+            self.psu.set_voltage(1, 12)
+            self.psu.set_current(1, 0.4)
+            self.psu.set_voltage(2, 1)
+            self.psu.set_current(2, 0.01)
+            self.psu.enable_output()
+            print('HV switched ON.')
+            return True
+        else:
+            print('PSU Connection is not established.')
+            return False
     
     def switch_off(self):
         self.psu.disable_output()
