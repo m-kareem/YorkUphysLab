@@ -18,31 +18,31 @@ if scale.is_connected():
     # close the connection
     scale.close_connection()
 else:
-    print('Scale not found')
+    print('Scale not connected')
 
 # 2. Test the GPD3303D class
 psu = PSU.GPD3303D()
 
-if psu.is_connected():
-    # 3. Test the Actuator class
-    DAQ_mame = 'SDAQ-25' # you can find the DAQ name in the NI MAX software
-    
-    actuator = ACT.Actuator(DAQ_mame, psu)
-    actuator.switch_on()
-    actuator.set_position(10)
-    time.sleep(2)
-    print(f'New position: {actuator.get_position()} mm')
+# 3. Test the Actuator class
+DAQ_mame = 'SDAQ-25' # you can find the DAQ name in the NI MAX software: Devices and Interfaces
+       
+actuator = ACT.Actuator(DAQ_mame, psu)
+actuator.switch_on()
+actuator.set_position(10)
+time.sleep(2)
+print(f'New position: {actuator.get_position()} mm')
+actuator.switch_off()
 
-    # 4. Test the HV_control class
-    hv = HV.HV_control(psu)
-    hv.switch_on()
-    hv.set_HV_kV(1.8)
-    time.sleep(2)
-    actual_HV = hv.get_HV_kv()
-    print(f'Actual HV = {actual_HV} kV')
+# 4. Test the HV_control class
+hv = HV.HV_control(psu)
+hv.switch_on()
+hv.set_HV_kV(1.5)
+time.sleep(2)
+actual_HV = hv.get_HV_kv()
+print(f'Actual HV = {actual_HV} kV')
 
-    time.sleep(5)
-    psu.disable_output()
-    psu.close_connection()
-else:
-    print('Power supply not found')
+time.sleep(5)
+hv.switch_off()
+
+#else:
+#    print('Power supply not found')

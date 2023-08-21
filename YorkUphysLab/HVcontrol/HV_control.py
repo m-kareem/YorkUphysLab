@@ -8,17 +8,21 @@ class HV_control:
     
 
     def switch_on(self):
+        if not self.psu.is_connected():
+            self.psu.connect()
         self.psu.set_voltage(1, 12)
         self.psu.set_current(1, 0.4)
         self.psu.set_voltage(2, 1)
         self.psu.set_current(2, 0.01)
         
         self.psu.enable_output()
+        print('HV switched ON.')
     
-    '''
+    
     def switch_off(self):
         self.psu.disable_output()
-    '''
+        self.psu.close_connection()
+        print('HV switched OFF.')
     
     def set_HV_kV(self, voltage):
         if 0 <= voltage <= 3:

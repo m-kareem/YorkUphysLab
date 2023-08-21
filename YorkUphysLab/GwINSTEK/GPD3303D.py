@@ -8,12 +8,13 @@ class GPD3303D:
         self.keyword = keyword
         self.timeout = timeout
         self.baudrate = baudrate
-        self.connected = False
-        if port:
+        self.inst = None
+
+    def connect(self):
+        if self.port:
             self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
         else:
             self.inst = self.port_search(self.keyword)
-            
 
     def port_search(self, keyword):
         print('Searching for the device...')
@@ -34,9 +35,13 @@ class GPD3303D:
 
     
     def send_cmd(self, cmd):
-        self.inst.write(cmd.encode('ascii') + b'\r\n')
-        resp = self.inst.readline().strip().decode('ascii')
-        return resp
+        if self.is_connected():
+            self.inst.write(cmd.encode('ascii') + b'\r\n')
+            resp = self.inst.readline().strip().decode('ascii')
+            return resp
+        else:
+            print('PSU Connection is not established.')
+            return None
 
     
     def get_idn(self):
@@ -64,17 +69,22 @@ class GPD3303D:
     
     def get_voltage(self, channel):
         response = self.send_cmd(f'VOUT{channel}?')
-        voltage_str, unit_str = response.strip().split("V")
-        return float(voltage_str)
+        if response is not None:
+            voltage_str, unit_str = response.strip().split("V")
+            return float(voltage_str)
     
     def get_current(self, channel):
         response = self.send_cmd(f'IOUT{channel}?')
-        current_str, unit_str = response.strip().split("A")
-        return float(current_str)
+        if response is not None:
+            current_str, unit_str = response.strip().split("A")
+            return float(current_str)
     
     def close_connection(self):
-        if self.inst.is_open:
+        if self.inst is not None and self.inst.is_open:
             self.inst.close()
+            print('PSU Connection closed.')
+        else:
+            print('No active PSU connection to close.')
     
     def is_connected(self):
         if self.inst is None:
@@ -85,8 +95,12 @@ class GPD3303D:
 
 # how to use this class
 if __name__ == '__main__':
+    # create a power-supply object
     psu = GPD3303D()
     #psu = GPD3303D(port='COM8')
+
+    # connect to the device
+    psu.connect()
 
     # Set the output voltage and current for channel 1
     psu.set_voltage(1, 12)
