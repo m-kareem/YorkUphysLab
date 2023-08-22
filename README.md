@@ -4,7 +4,7 @@ This package includes the required drivers to control some of the hardwares in p
 
 ## How to install
 
-```pip install --upgrade YorkUphysLab```
+```pip install --no-cache-dir --upgrade YorkUphysLab```
 
 ## How to use
 
