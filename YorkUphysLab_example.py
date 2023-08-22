@@ -7,18 +7,17 @@ import time
 
 # 1. Test the ScoutSTX class
 scale = Scale.ScoutSTX()
+scale.connect()
 
-if scale.is_connected():
-    wt = scale.read_weight_time()
-    print(f"Weight: {wt[0]} g, at {wt[1]}")
+wt = scale.read_weight_time()
+if wt: print(f"Weight: {wt[0]} g, at {wt[1]}")
 
-    w = scale.read_weight()
-    print(f"Weight: {w} g")
-    
-    # close the connection
-    scale.close_connection()
-else:
-    print('Scale not connected')
+w = scale.read_weight()
+if w: print(f"Weight: {w} g")
+
+# close the connection
+scale.close_connection()
+
 
 # 2. Test the GPD3303D class
 psu = PSU.GPD3303D()

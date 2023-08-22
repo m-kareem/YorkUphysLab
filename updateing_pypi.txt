@@ -1,0 +1,13 @@
+Updating the PYPI repository with the new release:
+==================================================
+#1. creating the source distribution (whl & tar.gz)
+python -m build
+
+#2. Uploading the distribution archives using the pypi API token
+python -m pip install --upgrade twine
+
+# 2.1. For the username, use __token__ For the password, use the token value
+python -m twine upload --repository pypi dist/*
+
+#3. Installing your newly uploaded package:
+pip install --upgrade YorkUphysLab

@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: YorkUphysLab
-Version: 1.0.2
+Version: 1.0.4
 Summary: A Python package to control YU physics labs equipment
 Home-page: https://github.com/m-kareem/YorkUphysLab
 Author: Mohammad Kareem
@@ -16,8 +16,18 @@ License-File: LICENSE
 
 # York University physics lab
 
-This is package that includes the required drivers to controle some of the hardwares in physics labs at YorkU.
-Developed by:
+This package includes the required drivers to control some of the hardwares in physics labs at York University.
+
+## How to install
+
+```pip install YorkUphysLab```
+
+## How to use
+
+See the examples script: YorkUphysLab_example.py
+
+
+## Developed by:
 
 Mohammad Kareem, Ph.D.
 Laboratory Technologist
