@@ -2,6 +2,7 @@ from YorkUphysLab.ScoutScale import ScoutSTX as Scale
 from YorkUphysLab.GwINSTEK import GPD3303D as PSU
 from YorkUphysLab.Actuator import Actuator as ACT
 from YorkUphysLab.HVcontrol import HV_control as HV
+from YorkUphysLab.Utility import Utility
 
 import time
 
@@ -42,3 +43,7 @@ if hv.switch_on():
     print(f'Actual HV = {actual_HV} kV')
     time.sleep(5)
     hv.switch_off()
+
+# 5. Save data to a CSV file
+data = [[1, 2], [3, 4]]
+Utility.write_data_to_csv(data, "test123.csv")
