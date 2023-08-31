@@ -37,13 +37,14 @@ if actuator.switch_on():
 # 4. Test the HV_control class
 hv = HV.HV_control(psu)
 if hv.switch_on():
-    hv.set_HV_kV(1.5)
+    hv.set_hv(1.5)
     time.sleep(2)
-    actual_HV = hv.get_HV_kv()
+    actual_HV = hv.get_hv()
     print(f'Actual HV = {actual_HV} kV')
     time.sleep(5)
     hv.switch_off()
 
 # 5. Save data to a CSV file
+desktop_path = "C:\\Users\\mkareem\\OneDrive - York University\\Desktop"
 data = [[1, 2], [3, 4]]
-Utility.write_data_to_csv(data, "test123.csv")
+Utility.write_data_to_csv(data, desktop_path, "test123.csv")

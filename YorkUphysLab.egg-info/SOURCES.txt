@@ -16,3 +16,5 @@ YorkUphysLab/HVcontrol/HV_control.py
 YorkUphysLab/HVcontrol/__init__.py
 YorkUphysLab/ScoutScale/ScoutSTX.py
 YorkUphysLab/ScoutScale/__init__.py
+YorkUphysLab/Utility/Utility.py
+YorkUphysLab/Utility/__init__.py

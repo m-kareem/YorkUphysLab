@@ -1,14 +1,11 @@
 import os
 import csv
 
-def write_data_to_csv(data, filename):
+def write_data_to_csv(data, path, filename):
     header = ['Position', 'Weight']
     
-    # Get the user's desktop path
-    desktop_path = os.path.join(os.path.expanduser("~"), "OneDrive - York University", "Desktop")
-    
     # Create the full path for the CSV file on the desktop
-    file_path = os.path.join(desktop_path, filename)
+    file_path = os.path.join(path, filename)
     
     try:
         with open(file_path, 'w', newline='') as csvfile:

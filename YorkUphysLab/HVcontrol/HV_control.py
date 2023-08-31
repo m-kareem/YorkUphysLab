@@ -25,7 +25,7 @@ class HV_control:
         self.psu.close_connection()
         print('HV switched OFF.')
     
-    def set_HV_kV(self, voltage):
+    def set_hv(self, voltage):
         if 0 <= voltage <= 3:
             # Vctrl equation is a linear fit of the data below
             Vctrl = 1.6489*voltage + 0.0595
@@ -39,7 +39,7 @@ class HV_control:
             print('Requested High voltage out of range. Use 0 -3 kV')
             return None
     
-    def get_HV_kv(self):
+    def get_hv(self):
         # the output must be enabled to read the voltage
         actual_voltage = self.psu.get_voltage(2)
         print(f'actual_voltage = {actual_voltage} V')
