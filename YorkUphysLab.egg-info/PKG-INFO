@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: YorkUphysLab
-Version: 1.0.6
+Version: 1.0.7
 Summary: A Python package to control YU physics labs equipment
 Home-page: https://github.com/m-kareem/YorkUphysLab
 Author: Mohammad Kareem
@@ -13,6 +13,8 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: nidaqmx
+Requires-Dist: pyserial
 
 # York University physics lab
 

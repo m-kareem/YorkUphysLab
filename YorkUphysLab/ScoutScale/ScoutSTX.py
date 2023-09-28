@@ -2,28 +2,41 @@ import serial
 import re
 import datetime
 import serial.tools.list_ports
+import random
 
 
 class ScoutSTX:
-    def __init__(self, keyword='ES', baudrate=9600, timeout=1, port=None) -> None:
+    def __init__(self, emul=False, keyword='ES', baudrate=9600, timeout=1, port=None) -> None:
         self.port = port
         self.keyword = keyword
         self.timeout = timeout
         self.baudrate = baudrate
         self.inst = None
+        self.emul = emul
+        self.inst_is_open = False
+        if self.emul:
+            self.emul_str = "[Emulation mode]:"
+        else:
+            self.emul_str = ""
     
     def connect(self):
-        if self.port:
-            self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+        if not self.emul:
+            if self.port:
+                self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+            else:
+                self.inst = self.port_search(self.keyword)
+
+            if self.inst is not None:
+                print(f'Connected to ScoutSTX scale.')
+                return True
+            else:
+                print('ScoutSTX Connection failed.')
+                return False
         else:
-            self.inst = self.port_search(self.keyword)
-        
-        if self.inst is not None:
-            print(f'Connected to ScoutSTX scale.')
+            print(f'{self.emul_str} Connected to ScoutSTX scale.')
+            self.inst = 'emulated scale'
+            self.inst_is_open = True
             return True
-        else:
-            print('ScoutSTX Connection failed.')
-            return False
     
     def port_search(self, keyword):
         print('Searching for the device...')
@@ -43,72 +56,99 @@ class ScoutSTX:
         return None
     
     def close_connection(self):
-        if self.inst is not None and self.inst.is_open:
-            self.inst.close()
-            print('ScoutSTX Connection closed.')
+        if not self.emul:
+            if self.inst is not None and self.inst.is_open:
+                self.inst.close()
+                print('ScoutSTX Connection closed.')
+            else:
+                print('No active ScoutSTX connection to close.')
         else:
-            print('No active ScoutSTX connection to close.')
+            if self.inst is not None and self.inst_is_open:
+                self.inst_is_open = False
+                print(f'{self.emul_str} ScoutSTX Connection closed.')
+
     
     def is_connected(self):
         if self.inst is None:
             return False
-        return self.inst.is_open
+        if self.emul:
+            return self.inst_is_open
+        else:
+            return self.inst.is_open
+
 
     def read_weight_time(self):
         # Send command to scale to read weight
         if self.is_connected():
-            self.inst.write(b'S\r\n')
-            response = self.inst.readline().decode().strip()
-            # Parse weight from response
-            if response.startswith('S'):
-                match = re.search(r"[-+]?\d*\.\d+|\d+", response)
-                if match:
-                    weight = float(match.group())
-                    # Get current time
-                    now = datetime.datetime.now()
-                    hour = now.hour
-                    minute = now.minute
-                    second = now.second
-                    
-                    return (weight, f'{hour}:{minute}:{second}')
+            
+            if not self.emul:
+                self.inst.write(b'S\r\n')
+                response = self.inst.readline().decode().strip()
+                # Parse weight from response
+                if response.startswith('S'):
+                    match = re.search(r"[-+]?\d*\.\d+|\d+", response)
+                    if match:
+                        weight = float(match.group())
+                    else:
+                        print("Error parsing weight from scale's response")
+                        return None
                 else:
-                    print("Error parsing weight from scale's response")
+                    print("Error scale's response")
                     return None
             else:
-                print("Error scale's response")
-                return None
+                # Generate random weight
+                min_value = 1.0
+                max_value = 10.0
+                weight = round(random.uniform(min_value, max_value), 2)
+            
+            # Get current time
+            now = datetime.datetime.now()
+            hour = now.hour
+            minute = now.minute
+            second = now.second
+            return (weight, f'{hour}:{minute}:{second}')
+
         else:
-            print('ScoutSTX Connection is not established.')
+            print(f'{self.emul_str} ScoutSTX Connection is not established.')
             return None    
     
     def read_weight(self):
         # Send command to scale to read weight
         if self.is_connected():
-            self.inst.write(b'S\r\n')
-            response = self.inst.readline().decode().strip()
-            # Parse weight from response
-            if response.startswith('S'):
-                match = re.search(r"[-+]?\d*\.\d+|\d+", response)
-                if match:
-                    weight = float(match.group())
-                    return weight
+            if not self.emul:
+                self.inst.write(b'S\r\n')
+                response = self.inst.readline().decode().strip()
+                # Parse weight from response
+                if response.startswith('S'):
+                    match = re.search(r"[-+]?\d*\.\d+|\d+", response)
+                    if match:
+                        weight = float(match.group())
+                    else:
+                        print("Error parsing weight from scale's response")
+                        return None
                 else:
-                    print("Error parsing weight from scale's response")
+                    print("Error scale's response")
                     return None
             else:
-                print("Error scale's response")
-                return None
+                # Generate random weight
+                min_value = 1.0
+                max_value = 10.0
+                weight = round(random.uniform(min_value, max_value), 2)
+            
+            return weight
+
         else:
-            print('ScoutSTX Connection is not established.')
-            return None 
+            print(f'{self.emul_str} ScoutSTX Connection is not established.')
+            return None
+
 #==============================================================================    
 
 # how to use this class
 if __name__ == "__main__":
-
-    scale = ScoutSTX()
+    
+    scale = ScoutSTX(emul=True)
     #scale = ScoutSTX(port='COM7')
-
+    
     # connect to the device
     scale.connect()
 

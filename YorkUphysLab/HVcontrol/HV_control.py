@@ -3,9 +3,14 @@ import time
 
 
 class HV_control:
-    def __init__(self, _psu) -> None:
+    def __init__(self, _psu, emul=False) -> None:
         self.psu = _psu
-    
+        self.HV_on = False
+        self.emul = emul
+        if self.emul:
+            self.emul_str = "[Emulation mode]:"
+        else:
+            self.emul_str = ""
 
     def switch_on(self):
         if self.psu.is_connected():
@@ -14,16 +19,19 @@ class HV_control:
             self.psu.set_voltage(2, 1)
             self.psu.set_current(2, 0.01)
             self.psu.enable_output()
-            print('HV switched ON.')
+            print(f'{self.emul_str} HV switched ON.')
+            self.HV_on = True
             return True
         else:
-            print('PSU Connection is not established.')
+            print(f'{self.emul_str} PSU Connection is not established.')
             return False
     
     def switch_off(self):
         self.psu.disable_output()
         self.psu.close_connection()
-        print('HV switched OFF.')
+        print(f'{self.emul_str} HV switched OFF.')
+        self.HV_on = False
+        return True
     
     def set_hv(self, voltage):
         if 0 <= voltage <= 3:
@@ -31,44 +39,54 @@ class HV_control:
             Vctrl = 1.6489*voltage + 0.0595
             Vctrl = 5 if Vctrl >= 5 else round(Vctrl, 1)
 
-            print(f'Vctrl = {Vctrl} V')
-            self.psu.set_voltage(2, Vctrl)
-            return True
+            #print(f'Vctrl = {Vctrl} V')
+            if self.HV_on:
+                self.psu.set_voltage(2, Vctrl)
+                return True
+            else:
+                print(f'{self.emul_str} The HV is switched OFF!')
 
         else:
-            print('Requested High voltage out of range. Use 0 -3 kV')
+            print(f'{self.emul_str} Requested High voltage out of range. Use 0 -3 kV')
             return None
     
     def get_hv(self):
-        # the output must be enabled to read the voltage
-        actual_voltage = self.psu.get_voltage(2)
-        print(f'actual_voltage = {actual_voltage} V')
-        actual_HV = (actual_voltage - 0.0595)/1.6489
-        return round(actual_HV, 2)
-
+        if self.HV_on:
+            # the output must be enabled to read the voltage
+            actual_voltage = self.psu.get_voltage(2)
+            print(f'{self.emul_str} actual_voltage = {actual_voltage} V')
+            actual_HV = (actual_voltage - 0.0595)/1.6489
+            return round(actual_HV, 2)
+        else:
+            print(f'{self.emul_str} The HV is switched OFF!')
+            return None
 #==============================================================================    
 
 # how to use this class
 if __name__ == "__main__":
-
+        
     try:
-        psu = PSU.GPD3303D(port='COM8')
+        #psu = PSU.GPD3303D(port='COM8')
+        psu = PSU.GPD3303D(emul=True)
     except:
         print('No PSU found, or device is not connected')
         exit()
+    
+    psu.connect()
 
     if psu.is_connected():
-        HV = HV_control(psu)
+        HV = HV_control(psu, emul=True)
+        
         HV.switch_on()
-        HV.set_HV_kV(1.5)
+        HV.set_hv(1.5)
         time.sleep(2)
-        actual_HV = HV.get_HV_kv()
+        actual_HV = HV.get_hv()
         print(f'Actual HV = {actual_HV} kV')
         psu.disable_output()
         psu.close_connection()
     
     else:
-        print('No PSU found')
+        print('PSU not connected')
 
 
 '''
