@@ -13,18 +13,26 @@ class HV_control:
             self.emul_str = ""
 
     def switch_on(self):
-        if self.psu.is_connected():
-            self.psu.set_voltage(1, 12)
-            self.psu.set_current(1, 0.4)
-            self.psu.set_voltage(2, 1)
-            self.psu.set_current(2, 0.01)
-            self.psu.enable_output()
-            print(f'{self.emul_str} HV switched ON.')
-            self.HV_on = True
-            return True
-        else:
-            print(f'{self.emul_str} PSU Connection is not established.')
-            return False
+        try:
+            if not self.psu.is_connected():
+                self.psu.connect()
+
+            if self.psu.is_connected():
+                self.psu.set_voltage(1, 12)
+                self.psu.set_current(1, 0.4)
+                self.psu.set_voltage(2, 1)
+                self.psu.set_current(2, 0.01)
+                self.psu.enable_output()
+                self.HV_on = True
+                message = f'{self.emul_str} HV switched ON.'
+            else:
+                message = f'{self.emul_str} PSU Connection is not established.'
+                
+        except Exception as e:
+            message = f'{self.emul_str} An error occurred: {str(e)}'
+        
+        print(message)
+        return self.HV_on
     
     def switch_off(self):
         self.psu.disable_output()

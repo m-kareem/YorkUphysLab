@@ -56,16 +56,25 @@ class Actuator:
         return round(pos,1)
 
     def switch_on(self):
-        if self.psu.is_connected():
-            self.psu.set_voltage(1, 12)
-            self.psu.set_current(1, 0.4)
-            self.psu.enable_output()
-            print(f'{self.emul_str} Actuator switched ON.')
-            self.actuator_on = True
-            return True
-        else:
-            print(f'{self.emul_str} PSU Connection is not established.')
-            return False
+        try:
+            if not self.psu.is_connected():
+                self.psu.connect()
+
+            if self.psu.is_connected():
+                self.psu.set_voltage(1, 12)
+                self.psu.set_current(1, 0.4)
+                self.psu.enable_output()
+                self.actuator_on = True
+                message = f'{self.emul_str} Actuator switched ON.'
+            else:
+                message = f'{self.emul_str} PSU Connection is not established.'
+
+        except Exception as e:
+            message = f'{self.emul_str} An error occurred: {str(e)}'
+        
+        print(message)
+        
+        return self.actuator_on
     
     def switch_off(self):
         self.psu.disable_output()

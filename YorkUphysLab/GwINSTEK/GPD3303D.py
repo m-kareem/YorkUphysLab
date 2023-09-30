@@ -98,7 +98,7 @@ class GPD3303D:
     def disable_output(self):
         if not self.emul: return self.send_cmd('OUT0')
         else:
-            print(f'{self.emul_str} PUS output disabled.')
+            print(f'{self.emul_str} PSU output disabled.')
             return True
     
     def enable_beep(self):
