@@ -50,9 +50,10 @@ class HV_control:
             #print(f'Vctrl = {Vctrl} V')
             if self.HV_on:
                 self.psu.set_voltage(2, Vctrl)
+                print(f'{self.emul_str} HV voltage set to {voltage} kV')
                 return True
             else:
-                print(f'{self.emul_str} The HV is switched OFF!')
+                print(f'{self.emul_str} HV is switched OFF!')
 
         else:
             print(f'{self.emul_str} Requested High voltage out of range. Use 0 -3 kV')
@@ -62,7 +63,7 @@ class HV_control:
         if self.HV_on:
             # the output must be enabled to read the voltage
             actual_voltage = self.psu.get_voltage(2)
-            print(f'{self.emul_str} actual_voltage = {actual_voltage} V')
+            #print(f'{self.emul_str} actual_voltage = {actual_voltage} V')
             actual_HV = (actual_voltage - 0.0595)/1.6489
             return round(actual_HV, 2)
         else:

@@ -1,6 +1,9 @@
 import os
 import csv
 
+from YorkUphysLab.Actuator import Actuator as ACT
+from YorkUphysLab.HVcontrol import HV_control as HV
+
 def write_data_to_csv(data, path, filename):
     header = ['Position', 'Weight']
     
@@ -19,3 +22,13 @@ def write_data_to_csv(data, path, filename):
     except Exception as e:
         print(f"An error occurred: {e}")
         return False
+    
+
+def reset_devices(actuator, hv):
+    if not actuator.actuator_on:
+        actuator.switch_on()
+    actuator.set_position(0)
+
+    if not hv.HV_on:
+        hv.switch_on()
+    hv.set_hv(0)
