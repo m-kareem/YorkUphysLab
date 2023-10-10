@@ -21,17 +21,20 @@ class ScoutSTX:
     
     def connect(self):
         if not self.emul:
-            if self.port:
-                self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-            else:
-                self.inst = self.port_search(self.keyword)
+            if not self.inst.is_open:
+                if self.port:
+                    self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+                else:
+                    self.inst = self.port_search(self.keyword)
 
-            if self.inst is not None:
-                print(f'Connected to ScoutSTX scale.')
-                return True
+                if self.inst is not None:
+                    print(f'Connected to ScoutSTX scale.')
+                    return True
+                else:
+                    print('ScoutSTX Connection failed.')
+                    return False
             else:
-                print('ScoutSTX Connection failed.')
-                return False
+                print('ScoutSTX is already connected.')
         else:
             print(f'{self.emul_str} Connected to ScoutSTX scale.')
             self.inst = 'emulated scale'
@@ -74,43 +77,7 @@ class ScoutSTX:
         if self.emul:
             return self.inst_is_open
         else:
-            return self.inst.is_open
-
-
-    def read_weight_time(self):
-        # Send command to scale to read weight
-        if self.is_connected():
-            
-            if not self.emul:
-                self.inst.write(b'S\r\n')
-                response = self.inst.readline().decode().strip()
-                # Parse weight from response
-                if response.startswith('S'):
-                    match = re.search(r"[-+]?\d*\.\d+|\d+", response)
-                    if match:
-                        weight = float(match.group())
-                    else:
-                        print("Error parsing weight from scale's response")
-                        return None
-                else:
-                    print("Error scale's response")
-                    return None
-            else:
-                # Generate random weight
-                min_value = 1.0
-                max_value = 10.0
-                weight = round(random.uniform(min_value, max_value), 2)
-            
-            # Get current time
-            now = datetime.datetime.now()
-            hour = now.hour
-            minute = now.minute
-            second = now.second
-            return (weight, f'{hour}:{minute}:{second}')
-
-        else:
-            print(f'{self.emul_str} ScoutSTX Connection is not established.')
-            return None    
+            return self.inst.is_open  
     
     def read_weight(self):
         # Send command to scale to read weight

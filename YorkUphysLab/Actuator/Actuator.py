@@ -23,7 +23,7 @@ class Actuator:
         if 0 <= pos <= self.max_pos:
             Vctrl = -0.00004*pos*pos + 0.0528*pos + 0.1
         else:
-            print(f'{self.emul_str} position out of range. use 0-{self.max_pos} mm')
+            print(f'{self.emul_str} position ({pos} mm) out of range. use 0-{self.max_pos} mm')
             return
 
         if self.actuator_on and move:
