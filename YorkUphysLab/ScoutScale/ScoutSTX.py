@@ -21,7 +21,7 @@ class ScoutSTX:
     
     def connect(self):
         if not self.emul:
-            if not self.inst.is_open:
+            if not self.inst_is_open:
                 if self.port:
                     self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
                 else:
@@ -29,6 +29,7 @@ class ScoutSTX:
 
                 if self.inst is not None:
                     print(f'Connected to ScoutSTX scale.')
+                    self.inst_is_open = True
                     return True
                 else:
                     print('ScoutSTX Connection failed.')
