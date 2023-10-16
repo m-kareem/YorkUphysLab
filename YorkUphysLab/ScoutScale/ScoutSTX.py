@@ -68,8 +68,8 @@ class ScoutSTX:
                 print('No active ScoutSTX connection to close.')
         else:
             if self.inst is not None and self.inst_is_open:
-                self.inst_is_open = False
                 print(f'{self.emul_str} ScoutSTX Connection closed.')
+        self.inst_is_open = False
 
     
     def is_connected(self):
