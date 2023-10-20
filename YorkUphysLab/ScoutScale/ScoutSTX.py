@@ -1,8 +1,8 @@
 import serial
 import re
-import datetime
 import serial.tools.list_ports
 import random
+import time
 
 
 class ScoutSTX:
@@ -84,6 +84,7 @@ class ScoutSTX:
         # Send command to scale to read weight
         if self.is_connected():
             if not self.emul:
+                time.sleep(1) # wait for the scale to settle
                 self.inst.write(b'S\r\n')
                 response = self.inst.readline().decode().strip()
                 # Parse weight from response
