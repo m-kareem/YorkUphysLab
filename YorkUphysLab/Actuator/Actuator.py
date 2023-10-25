@@ -18,40 +18,55 @@ class Actuator:
             self.emul_str = ""
 
     
-    def set_position(self, pos, move=True):
+    def set_position(self, pos):
+        if not self.actuator_on:
+            print(f'{self.emul_str} Actuator is switched OFF. Switch it ON first!')
+            return None
+        
+        # when PSU connection is closed by another device:
+        if not self.psu.is_connected():
+            print("PSU Connection is not established. Switching off other devise sharing same PSU might have caused this. Switch on this decive and try again.")
+            return None
+        
         
         if 0 <= pos <= self.max_pos:
             Vctrl = -0.00004*pos*pos + 0.0528*pos + 0.1
         else:
             print(f'{self.emul_str} position ({pos} mm) out of range. use 0-{self.max_pos} mm')
-            return
+            return None
 
-        if self.actuator_on and move:
-            self.current_pos = self.get_position()
-            required_time = abs(pos - self.current_pos)*self.max_time/self.max_pos + 1
+        #if self.actuator_on:
+        self.current_pos = self.get_position()
+        required_time = abs(pos - self.current_pos)*self.max_time/self.max_pos + 1
             
-            if not self.emul:
-                with nidaqmx.Task() as task:
-                    task.ao_channels.add_ao_voltage_chan(f'{self.sdaq}/ao0','mychannel',0,5)
-                    task.write(Vctrl)
-                    task.stop()
+        if not self.emul:
+            with nidaqmx.Task() as task:
+                task.ao_channels.add_ao_voltage_chan(f'{self.sdaq}/ao0','mychannel',0,5)
+                task.write(Vctrl)
+                task.stop()
         
-            time.sleep(required_time)
-            print(f'{self.emul_str} position set to {pos} mm')
-            self.current_pos = pos    
+        time.sleep(required_time)
+        print(f'{self.emul_str} position set to {pos} mm')
+        self.current_pos = pos    
 
     def get_position(self):
-        if self.actuator_on:
-            if not self.emul:
-                with nidaqmx.Task() as task:
-                    task.ai_channels.add_ai_voltage_chan(f'{self.sdaq}/ai0')
-                    Vadc = task.read()
-                pos = 55.33223 - 31.31889*Vadc + 0.5730428*Vadc*Vadc
-            else:
-                pos = self.current_pos
-        else:
-            print(f'{self.emul_str} Actuator is switched OFF!')
+        if not self.actuator_on:
+            print(f'{self.emul_str} Actuator is switched OFF! Switch it ON first!')
             return None
+        
+        # when PSU connection is closed by another device:
+        if not self.psu.is_connected():
+            print("PSU Connection is not established. Switching off other devise sharing same PSU might have caused this. Switch on this decive and try again.")
+            return None
+        
+        #if self.actuator_on:
+        if not self.emul:
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan(f'{self.sdaq}/ai0')
+                Vadc = task.read()
+            pos = 55.33223 - 31.31889*Vadc + 0.5730428*Vadc*Vadc
+        else:
+            pos = self.current_pos
         
         return round(pos,1)
 
@@ -62,7 +77,7 @@ class Actuator:
 
             if self.psu.is_connected():
                 self.psu.set_voltage(1, 12)
-                self.psu.set_current(1, 0.4)
+                self.psu.set_current(1, 0.5)
                 self.psu.enable_output()
                 self.actuator_on = True
                 message = f'{self.emul_str} Actuator switched ON.'
@@ -89,17 +104,17 @@ if __name__ == "__main__":
     
     DAQ_mame = 'SDAQ-25'
     # create power-supply and actuator objects
-    psu = PSU.GPD3303D(emul=True)
-    actuator = Actuator(DAQ_mame, psu, emul=True)
+    psu = PSU.GPD3303D(emul=False)
+    actuator = Actuator(DAQ_mame, psu, emul=False)
     
-    psu.connect()
+    #psu.connect()
     actuator.switch_on()
-    actuator.set_position(50)
+    actuator.set_position(100)
     print(f'position moved to = {actuator.get_position()} mm')
         
     time.sleep(2)
     
-    actuator.switch_off()
+    #actuator.switch_off()
 
     '''
         SenorDAQ terminals:

@@ -19,7 +19,7 @@ class HV_control:
 
             if self.psu.is_connected():
                 self.psu.set_voltage(1, 12)
-                self.psu.set_current(1, 0.4)
+                self.psu.set_current(1, 0.5)
                 self.psu.set_voltage(2, 1)
                 self.psu.set_current(2, 0.01)
                 self.psu.enable_output()
@@ -42,33 +42,46 @@ class HV_control:
         return True
     
     def set_hv(self, voltage):
+        if not self.HV_on:
+            print(f'{self.emul_str} HV is switched OFF! Switch it ON first!')
+            return None
+        
+        # when PSU connection is closed by another device:
+        if not self.psu.is_connected():
+            print("PSU Connection is not established. Switching off other devise sharing same PSU might have caused this. Switch on this decive and try again.")
+            return None
+        
         if 0 <= voltage <= 3:
             # Vctrl equation is a linear fit of the data below
             Vctrl = 1.6489*voltage + 0.0595
             Vctrl = 5 if Vctrl >= 5 else round(Vctrl, 1)
 
-            #print(f'Vctrl = {Vctrl} V')
-            if self.HV_on:
-                self.psu.set_voltage(2, Vctrl)
-                print(f'{self.emul_str} HV voltage set to {voltage} kV')
-                return True
-            else:
-                print(f'{self.emul_str} HV is switched OFF!')
-
+            #if self.HV_on:
+            self.psu.set_voltage(2, Vctrl)
+            print(f'{self.emul_str} HV voltage set to {voltage} kV')
+            return True
+            
         else:
             print(f'{self.emul_str} Requested High voltage out of range. Use 0 -3 kV')
             return None
     
     def get_hv(self):
-        if self.HV_on:
-            # the output must be enabled to read the voltage
-            actual_voltage = self.psu.get_voltage(2)
-            #print(f'{self.emul_str} actual_voltage = {actual_voltage} V')
-            actual_HV = (actual_voltage - 0.0595)/1.6489
-            return round(actual_HV, 2)
-        else:
-            print(f'{self.emul_str} The HV is switched OFF!')
+        
+        if not self.HV_on:
+            print(f'{self.emul_str} HV is switched OFF! Switch it ON first!')
             return None
+        
+        # when PSU connection is closed by another device:
+        if not self.psu.is_connected():
+            print("PSU Connection is not established. Switching off other devise sharing same PSU might have caused this. Switch on this decive and try again.")
+            return None
+        
+        # the output must be enabled to read the voltage
+        actual_voltage = self.psu.get_voltage(2)
+        #print(f'{self.emul_str} actual_voltage = {actual_voltage} V')
+        actual_HV = (actual_voltage - 0.0595)/1.6489
+        return round(actual_HV, 2)
+        
 #==============================================================================    
 
 # how to use this class
