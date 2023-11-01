@@ -36,7 +36,7 @@ class HV_control:
     
     def switch_off(self):
         self.psu.disable_output()
-        self.psu.close_connection()
+        #self.psu.close_connection()
         print(f'{self.emul_str} HV switched OFF.')
         self.HV_on = False
         return True

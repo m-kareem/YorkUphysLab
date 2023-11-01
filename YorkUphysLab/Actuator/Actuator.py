@@ -93,7 +93,7 @@ class Actuator:
     
     def switch_off(self):
         self.psu.disable_output()
-        self.psu.close_connection()
+        #self.psu.close_connection()
         print(f'{self.emul_str} Actuator switched OFF.')
         self.actuator_on = False
         return True
