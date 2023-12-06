@@ -3,6 +3,7 @@ README.md
 pyproject.toml
 setup.cfg
 YorkUphysLab/__init__.py
+YorkUphysLab/__version__.py
 YorkUphysLab.egg-info/PKG-INFO
 YorkUphysLab.egg-info/SOURCES.txt
 YorkUphysLab.egg-info/dependency_links.txt
