@@ -6,7 +6,7 @@ python -m build
 #2. Uploading the distribution archives using the pypi API token
 python -m pip install --upgrade twine
 
-# 2.1. For the username, use __token__ For the password, use the token value
+# 2.1. For the username, use __token__ For the password, use the token value (or use $HOME/.pypirc)
 python -m twine upload --repository pypi dist/*
 
 #3. Installing your newly uploaded package:
