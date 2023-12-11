@@ -3,6 +3,44 @@ import time
 import serial.tools.list_ports
 
 class GPD3303D:
+    """
+    Represents the GPD3303D Programmable Power Supply Unit (PSU).
+
+    Args:
+        emul (bool): Whether to enable emulation mode. Default is False.
+        keyword (str): The keyword to search for in the device identification string. Default is 'GPD'.
+        baudrate (int): The baud rate for serial communication. Default is 9600.
+        timeout (float): The timeout duration for serial communication in seconds. Default is 1.
+        port (str): The specific port to connect to. If not provided, the port will be searched automatically.
+
+    Attributes:
+        port (str): The port used for communication.
+        keyword (str): The keyword used for device identification.
+        timeout (float): The timeout duration for serial communication.
+        baudrate (int): The baud rate for serial communication.
+        inst (serial.Serial or str): The serial connection instance or a string indicating emulation mode.
+        emul (bool): Whether emulation mode is enabled.
+        inst_is_open (bool): Whether the serial connection is open.
+        voltage (dict): A dictionary to store the voltage values for each channel.
+        current (dict): A dictionary to store the current values for each channel.
+        emul_str (str): A string indicating the emulation mode.
+
+    Methods:
+        connect(): Establishes a connection to the PSU.
+        port_search(keyword): Searches for the PSU on available ports.
+        send_cmd(cmd): Sends a command to the PSU and returns the response.
+        get_idn(): Retrieves the identification string of the PSU.
+        set_voltage(channel, voltage): Sets the voltage for a specific channel.
+        set_current(channel, current): Sets the current for a specific channel.
+        enable_output(): Enables the output of the PSU.
+        disable_output(): Disables the output of the PSU.
+        enable_beep(): Enables the beep sound of the PSU.
+        disable_beep(): Disables the beep sound of the PSU.
+        get_voltage(channel): Retrieves the voltage value for a specific channel.
+        get_current(channel): Retrieves the current value for a specific channel.
+        close_connection(): Closes the connection to the PSU.
+        is_connected(): Checks if the connection to the PSU is established.
+    """
     def __init__(self, emul=False, keyword='GPD', baudrate=9600, timeout=1, port=None) -> None:
         self.port = port
         self.keyword = keyword

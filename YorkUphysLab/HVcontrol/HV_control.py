@@ -1,4 +1,4 @@
-import YorkUphysLab.GwINSTEK.GPD3303D as PSU
+import YorkUphysLab.GwINSTEK.GPD as PSU
 import time
 
 
