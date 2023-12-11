@@ -11,8 +11,8 @@ YorkUphysLab.egg-info/requires.txt
 YorkUphysLab.egg-info/top_level.txt
 YorkUphysLab/Actuator/Actuator.py
 YorkUphysLab/Actuator/__init__.py
-YorkUphysLab/GwINSTEK/Afg.py
-YorkUphysLab/GwINSTEK/GPD.py
+YorkUphysLab/GwINSTEK/AFG2000.py
+YorkUphysLab/GwINSTEK/GPD3303D.py
 YorkUphysLab/GwINSTEK/__init__.py
 YorkUphysLab/HVcontrol/HV_control.py
 YorkUphysLab/HVcontrol/__init__.py
