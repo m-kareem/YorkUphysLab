@@ -1,5 +1,5 @@
 from YorkUphysLab.ScoutScale import ScoutSTX as Scale
-from YorkUphysLab.GwINSTEK import GPD as PSU
+from YorkUphysLab.GwINSTEK import GPD3303D as PSU
 from YorkUphysLab.Actuator import Actuator as ACT
 from YorkUphysLab.HVcontrol import HV_control as HV
 from YorkUphysLab.Utility import Utility
