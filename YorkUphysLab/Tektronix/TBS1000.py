@@ -174,7 +174,7 @@ class TBS1000:
 
         shift_samples = int((phase / 360) * samples_in_period) # number of samples to shift
         
-        print(f"phase shift: {phase} deg, shift_samples: {shift_samples}, total samples: {len(waveform_2)}")
+        #print(f"phase shift: {phase} deg, shift_samples: {shift_samples}, total samples: {len(waveform_2)}")
         
         shifted_waveform_2 = np.roll(waveform_2, shift_samples)
 
