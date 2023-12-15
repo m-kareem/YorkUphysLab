@@ -3,28 +3,18 @@ import numpy as np
 import time
 class TBS1000:
     """
-    A class representing representing the Tektronix TBS1000 oscilloscope.
+    Represents a Tektronix TBS1000 oscilloscope.
 
     Attributes:
-        keyword (str): The keyword used to identify the oscilloscope. Defaults to 'TBS'.
-        timeout (int): The timeout value in milliseconds. Defaults to 10000.
-        encoding (str): The encoding used for communication. Defaults to 'latin_1'.
-        read_termination (str): The read termination character. Defaults to '\n'.
-
-    Methods:
-        connect(): Connects to the oscilloscope.
-        close(): Closes the connection to the oscilloscope.
-        is_connected(): Checks if the oscilloscope is connected.
-        get_idn(): Retrieves the identification string of the oscilloscope.
-        get_data(channel=1): Retrieves waveform data from the oscilloscope.
-
-    Note:
-        - The oscilloscope must be connected before calling any other methods.
-        - The oscilloscope settings are automatically adjusted based on the input signal.
-        - The waveform data is retrieved in binary format.
-        - The scaling factors for time and voltage are retrieved from the oscilloscope.
-        - Error checking is performed to ensure the data acquisition is successful.
+        keyword (str): The keyword used to identify the oscilloscope.
+        timeout (int): The timeout value for communication with the oscilloscope.
+        encoding (str): The encoding used for communication with the oscilloscope.
+        read_termination (str): The read termination character for communication with the oscilloscope.
+        write_termination (str): The write termination character for communication with the oscilloscope.
+        inst (visa.Resource): The instrument resource representing the connected oscilloscope.
+        is_open (bool): Indicates whether the oscilloscope connection is open or closed.
     """
+    
     def __init__(self, keyword='TBS', timeout=10000, encoding = 'latin_1', read_termination = '\n') -> None:
         self.keyword = keyword
         self.timeout = timeout
@@ -60,6 +50,7 @@ class TBS1000:
         else:
             print('No Tektronix TBS scope was found!')
             return False
+    
     #----------------------------------------------
     def close(self):
         if self.is_connected():
@@ -80,47 +71,45 @@ class TBS1000:
         else:
             return None
     
-
     #----------------------------------------------
     def get_period(self, channel):
-        if channel not in [1,2]:
-            raise ValueError("Channel must be 1 or 2")
-        self.inst.write('MEASUrement:IMMed:TYPE PERiod')
-        self.inst.write(f'MEASUrement:IMMed:SOUrce CH{channel}')
-        measured_period = self.inst.query('MEASUrement:IMMed:VALue?')
-        
-        return float(measured_period) # in seconds
+            """
+            Get the period of the waveform on the specified channel.
+            
+            Args:
+                channel (int): The channel number (1 or 2).
+            Returns:
+                float: The measured period in seconds.
+            Raises:
+                ValueError: If the channel number is not 1 or 2.
+            """
+            
+            if channel not in [1,2]:
+                raise ValueError("Channel must be 1 or 2")
+            self.inst.write('MEASUrement:IMMed:TYPE PERiod')
+            self.inst.write(f'MEASUrement:IMMed:SOUrce CH{channel}')
+            measured_period = self.inst.query('MEASUrement:IMMed:VALue?')
+            
+            return float(measured_period) # in seconds
     
     #----------------------------------------------
     def get_data(self, channel):
         """
-        Retrieves the waveform data from the Tektronix TBS1000 oscilloscope.
+        Retrieves the scaled time and waveform data from the oscilloscope for the specified channel.
 
         Args:
-            channel (int or str): The channel number or channel name. Defaults to 1.
-                - If 'multi', retrieves data from both channels.
-                - If 'diff', retrieves the differential data between channels 1 and 2.
-                - If 1 or 2, retrieves data from the specified channel.
+            channel (int): The channel number (1 or 2) for which to retrieve the data.
 
         Returns:
-            tuple: A tuple containing the scaled time values and the scaled waveform data.
-                - The scaled time values are in milliseconds.
-                - The scaled waveform data is a list of numpy arrays.
-
-        Raises:
-            ValueError: If the channel argument is invalid.
-
-        Note:
-            - The oscilloscope must be connected before calling this method.
-            - The oscilloscope settings are automatically adjusted based on the input signal.
-            - The waveform data is retrieved in binary format.
-            - The scaling factors for time and voltage are retrieved from the oscilloscope.
-            - Error checking is performed to ensure the data acquisition is successful.
+            tuple: A tuple containing the following elements:
+                - scaled_time (numpy.ndarray): An array of scaled time values in milliseconds.
+                - scaled_wave (numpy.ndarray): An array of scaled waveform values.
+                - total_time (float): The total time span of the waveform in seconds.
         """
         if not self.is_connected():
             return None
         if channel not in [1, 2]:
-            raise ValueError("Channel must be 1, or 2")
+            raise ValueError("Channel must be 1 or 2")
 
         scaled_wave = []
 
@@ -128,10 +117,11 @@ class TBS1000:
         r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.
         self.inst.write('autoset EXECUTE')  # autoset: automatically adjusts the oscilloscope's settings based on the input signal
         r = self.inst.query('*opc?')
+        
         # io config
         self.inst.write('header 0')
         self.inst.write('data:encdg RIBINARY')
-        self.inst.write(f'data:source CH{channel}')  # channel
+        self.inst.write(f'data:source CH{channel}')
         self.inst.write('data:start 1')  # first sample
         record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
         self.inst.write(f'data:stop {record}')  # last sample
@@ -152,41 +142,62 @@ class TBS1000:
             print('event status register: 0b{:08b}'.format(r))
         r = self.inst.query('allev?').strip()
         if 'No events' not in r:
-            print('all event messages: {}'.format(r))
-        
+            print(f'all event messages: {r}')
+
         total_time = tscale * record  # create scaled vectors
         tstop = tstart + total_time
         scaled_time = np.linspace(tstart, tstop, num=record, endpoint=False) * 1000  # time in ms
-        
+
         unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
         scaled_wave = (unscaled_wave - vpos) * vscale + voff
-                   
+
         return scaled_time, scaled_wave, total_time
-    
     
     #----------------------------------------------
     def phase_shift(self, scaled_time, waveform_1, waveform_2, total_time, phase_shift):
+        """
+        Apply phase shift to waveform_2 based on the given phase_shift value.
+        
+        Parameters:
+        scaled_time (array-like): Array of scaled time values.
+        waveform_1 (array-like): Array of waveform 1 values.
+        waveform_2 (array-like): Array of waveform 2 values.
+        total_time (float): Total time of the waveform.
+        phase_shift (float): Phase shift value in degrees.
+        
+        Returns:
+        tuple: A tuple containing the shifted scaled_time, waveform_1, and shifted waveform_2.
+        """
+        
         _, phase = divmod(phase_shift, 360)
         # get period of waveform 2
         period = self.get_period(2)
-
-        samples_in_period = int(period/total_time * len(waveform_2)) # number of samples in one period (samples
-
+        samples_in_period = int(period/total_time * len(waveform_2)) # number of samples in one period
         shift_samples = int((phase / 360) * samples_in_period) # number of samples to shift
-        
-        #print(f"phase shift: {phase} deg, shift_samples: {shift_samples}, total samples: {len(waveform_2)}")
         
         shifted_waveform_2 = np.roll(waveform_2, shift_samples)
 
         return scaled_time[shift_samples:], waveform_1[shift_samples:], shifted_waveform_2[shift_samples:]
 
+    #----------------------------------------------
     def mix_waveforms(self, waveform_1, waveform_2):
+        """
+        Mixes two waveforms element-wise.
+
+        Args:
+            waveform_1 (list): The first waveform.
+            waveform_2 (list): The second waveform.
+
+        Returns:
+            list: The resulting waveform after mixing.
+        """
         if len(waveform_1) != len(waveform_2):
             error = f"Waveforms must be the same length: {len(waveform_1)} != {len(waveform_2)}"
             return error
-        
+
         return [x*y for x,y in zip(waveform_1,waveform_2)]
-#----------------------------------------------
+
+#==============================================================================
 # how to use this class
 if __name__ == '__main__':
     # create a scope object
@@ -235,8 +246,6 @@ if __name__ == '__main__':
 
     scope.close()
     
-    #"""
     print("\nlook for plot window...")
     pl.show()
     print("\nend of demonstration")
-    #"""
