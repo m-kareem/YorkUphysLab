@@ -1,5 +1,11 @@
 import visa # http://github.com/hgrecco/pyvisa
 import time
+import logging
+
+#---------------------------------------------------
+
+logging.getLogger().setLevel(logging.INFO)
+
 class AFG2000:
 	"""
 	A class representing the AFG2000 function generator.
@@ -41,22 +47,22 @@ class AFG2000:
 				else:
 					dev.close()
 		if self.inst:
-			print(f"AFG2000 function generator found: {self.inst.query('*idn?')}")
+			logging.info(f"AFG2000 function generator found: {self.inst.query('*idn?')}")
 			self.is_open = True
 			self.inst.timeout = self.timeout # ms
 			return True
 		else:
-			print('No AFG2000 function generator was found!')
+			logging.info('No AFG2000 function generator was found!')
 			return False
 	
 	def close(self):
 		if self.is_connected():
 			self.inst.close()
 			self.is_open = False
-			print('AFG2000 function generator connection is closed.')
+			logging.info('AFG2000 function generator connection is closed.')
 			return True
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 	
 	def is_connected(self):
@@ -66,7 +72,7 @@ class AFG2000:
 		if self.is_connected():
 			return self.inst.query('*idn?')
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 		
 	def set_frequency(self, freq):
@@ -74,7 +80,7 @@ class AFG2000:
 			self.inst.write(f'SOUR1:FREQ {freq}')
 			return True
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 	
 	
@@ -84,10 +90,11 @@ class AFG2000:
 				self.inst.write(f'SOUR1:FUNC {waveform}')
 				return True
 			else:
-				print(f'Invalid waveform: {waveform}. Valid waveforms are "SIN", "SQU", "RAMP", "NOIS", and "ARB".')
+				logging.error(f'Invalid waveform: {waveform}. Valid waveforms are "SIN", "SQU", "RAMP", "NOIS", and "ARB".')
 				return None
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
+
 			return False
 	
 	def set_amplitude(self, amplitude, unit='VPP'):
@@ -95,12 +102,12 @@ class AFG2000:
 			if unit in ['VPP', 'VRMS', 'DBM']:
 				self.inst.write(f'SOUR1:VOLT:UNIT {unit}')
 			else:
-				print(f'Invalid unit: {unit}. Valid units are "VPP", "VRMS", and "DBM".')
+				logging.error(f'Invalid unit: {unit}. Valid units are "VPP", "VRMS", and "DBM".')
 				return None
 			self.inst.write(f'SOUR1:AMPL {amplitude}')
 			return True
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 
 	def set_DCoffset(self, offset):
@@ -108,7 +115,7 @@ class AFG2000:
 			self.inst.write(f'SOUR1:DCO {offset}')
 			return True
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 
 	def set_output(self, state):
@@ -117,10 +124,10 @@ class AFG2000:
 				self.inst.write(f'OUTP {state}')
 				return True
 			else:
-				print(f'Invalid output state: {state}. Valid states are "ON" and "OFF".')
+				logging.error(f'Invalid output state: {state}. Valid states are "ON" and "OFF".')
 				return None
 		else:
-			print('AFG2000 function generator is not connected!')
+			logging.info('AFG2000 function generator is not connected!')
 			return False
 		
 

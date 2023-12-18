@@ -1,6 +1,11 @@
 import visa # http://github.com/hgrecco/pyvisa
 import numpy as np
 import time
+import logging
+
+#----------------------------------------------
+logging.getLogger().setLevel(logging.INFO)
+
 class TBS1000:
     """
     Represents a Tektronix TBS1000 oscilloscope.
@@ -39,26 +44,50 @@ class TBS1000:
                 else:
                     dev.close()
         if self.inst:
-            print(f"Tektronix TBS scope found: {self.inst.query('*idn?')}")
+            logging.info(f"Tektronix TBS scope found: {self.inst.query('*idn?')}")
             self.is_open = True
             self.inst.timeout = self.timeout # ms
             self.inst.encoding = self.encoding
             self.inst.read_termination = self.read_termination
             self.inst.write_termination = self.write_termination
             self.inst.write('*cls') # clear Event Status Register (ESR)
+            self.config()
             return True
         else:
-            print('No Tektronix TBS scope was found!')
+            logging.info('No Tektronix TBS scope was found!')
             return False
     
+    #----------------------------------------------
+    def config(self):
+        if self.is_connected():
+            self.inst.write('*rst')  # reset the instrument to a known state.
+            r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.
+            self.inst.write('autoset EXECUTE')  # autoset: automatically adjusts the oscilloscope's settings based on the input signal
+            r = self.inst.query('*opc?')
+            self.inst.write('HORIZONTAL:MAIN:SCALE 5E-3')
+            r = self.inst.query('*opc?')
+            self.inst.write('CH1:COUPLING AC')
+            r = self.inst.query('*opc?')
+            self.inst.write('CH1:SCALE 50E-3')
+            r = self.inst.query('*opc?')
+            self.inst.write('CH2:SCALE 2')
+            r = self.inst.query('*opc?')
+            self.inst.write('TRIGGER:MAIN:EDGE:SOURCE CH2') # set trigger source to channel 2
+            r = self.inst.query('*opc?')
+            return True
+        else:
+            logging.info('Tektronix TBS scope is not connected!')
+            return False
+
+
     #----------------------------------------------
     def close(self):
         if self.is_connected():
             self.inst.close()
             self.is_open = False
-            print('Tektronix TBS scope connection is closed.')
+            logging.info('Tektronix TBS scope connection is closed.')
         else:
-            print('Tektronix TBS scope is not connected!')
+            logging.info('Tektronix TBS scope is not connected!')
 
     #----------------------------------------------
     def is_connected(self):
@@ -112,11 +141,13 @@ class TBS1000:
             raise ValueError("Channel must be 1 or 2")
 
         scaled_wave = []
-
+        
+        """
         self.inst.write('*rst')  # reset the instrument to a known state.
         r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.
         self.inst.write('autoset EXECUTE')  # autoset: automatically adjusts the oscilloscope's settings based on the input signal
         r = self.inst.query('*opc?')
+        """
         
         # io config
         self.inst.write('header 0')
@@ -131,18 +162,22 @@ class TBS1000:
         self.inst.write('acquire:stopafter SEQUENCE')  # sets the acquisition mode to 'SEQUENCE': acquires a single waveform and then stops
         self.inst.write('acquire:state 1')  # run
         r = self.inst.query('*opc?')  # sync
+        
+        # data query
         bin_wave = self.inst.query_binary_values('curve?', datatype='b', container=np.array)
         tscale = float(self.inst.query('wfmpre:xincr?'))  # retrieve scaling factors
         tstart = float(self.inst.query('wfmpre:xzero?'))
         vscale = float(self.inst.query('wfmpre:ymult?'))  # volts / level
         voff = float(self.inst.query('wfmpre:yzero?'))  # reference voltage
         vpos = float(self.inst.query('wfmpre:yoff?'))  # reference position (level)
-        r = int(self.inst.query('*esr?'))  # error checking
+        
+        # error checking
+        r = int(self.inst.query('*esr?'))
         if r != 0b00000000:
-            print('event status register: 0b{:08b}'.format(r))
+            logging.info('event status register: 0b{:08b}'.format(r))
         r = self.inst.query('allev?').strip()
         if 'No events' not in r:
-            print(f'all event messages: {r}')
+            logging.info(f'all event messages: {r}')
 
         total_time = tscale * record  # create scaled vectors
         tstop = tstart + total_time
@@ -206,28 +241,35 @@ if __name__ == '__main__':
     scope.connect()
     
     color = {1:'orange', 2:'blue', 'mix':'red'}
-
+    
+    #scope.config()
+    
     try:
         # retrieve waveform data
         scaled_time, scaled_wave_1, total_time = scope.get_data(channel=1)
-        print('ch 1 complete')
-        time.sleep(12)
+        logging.info('ch 1 complete')
+        time.sleep(3)
         scaled_time, scaled_wave_2, total_time = scope.get_data(channel=2)
-        print('ch 2 complete')
+        #scaled_wave_2 = np.array(scaled_wave_2)
+        logging.info('ch 2 complete')
         
-        phase_shift = 30
+        phase_shift = 0
         stime, wf1,wf2 = scope.phase_shift(scaled_time, scaled_wave_1, scaled_wave_2, total_time, phase_shift)
 
         mix_wf = scope.mix_waveforms(wf1, wf2)
-        avg_mix_wf = np.average(mix_wf)
+        avg_mix_wf = np.average(mix_wf)*1000 # in mV
         
         # --plotting
         #'''
         import pylab as pl
-        pl.plot(stime, wf1, label=f'Ch 1, 100Hz', color=color[1])
-        pl.plot(stime, wf2, label=f'Ch 2, 70 Hz', color=color[2])
+        #pl.plot(scaled_time, scaled_wave_1, label=f'Ch 1', color=color[1])
+        #y_max = max(scaled_wave_1)
+
+        #pl.plot(stime, wf1, label=f'Ch 1', color=color[1])
+        #pl.plot(stime, wf2, label=f'Ch 2', color=color[2])
         pl.plot(stime, mix_wf, label=f'Mix', color=color['mix'])
-        y_max = max(max(wf1), max(wf2), max(mix_wf))
+        y_max = max(mix_wf)
+        #y_max = max(max(wf1), max(wf2), max(mix_wf))
        
         pl.ylim(top=y_max*1.5)
         pl.xlabel('time [ms]') # x label
@@ -237,7 +279,7 @@ if __name__ == '__main__':
         
         pl.rc('grid', linestyle=':', color='gray', linewidth=1)
         pl.grid(True)
-        pl.title(f'avg_mix_wf: {round(avg_mix_wf,2)}, d_phi: {phase_shift}', fontsize = 14)
+        pl.title(f'Lock-in Output: {round(avg_mix_wf,2)} mV,  $\Delta\phi: {phase_shift}\degree$', fontsize = 10)
         #'''
         
     except ValueError as e:
