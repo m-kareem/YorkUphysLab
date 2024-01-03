@@ -1,4 +1,4 @@
-import visa # http://github.com/hgrecco/pyvisa
+import pyvisa
 import time
 import logging
 
@@ -35,7 +35,7 @@ class AFG2000:
 
     
 	def connect(self):
-		rm = visa.ResourceManager()
+		rm = pyvisa.ResourceManager()
 		resources_list = rm.list_resources()
 		
 		for re in resources_list:

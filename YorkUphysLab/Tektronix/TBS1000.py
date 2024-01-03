@@ -1,4 +1,4 @@
-import visa # http://github.com/hgrecco/pyvisa
+import pyvisa
 import numpy as np
 import time
 import logging
@@ -32,7 +32,7 @@ class TBS1000:
 
     #----------------------------------------------
     def connect(self):
-        rm = visa.ResourceManager()
+        rm = pyvisa.ResourceManager()
         resources_list = rm.list_resources()
         
         for re in resources_list:
@@ -161,7 +161,6 @@ class TBS1000:
         self.inst.write('acquire:state 0')  # stop data acquisition
         self.inst.write('acquire:stopafter SEQUENCE')  # sets the acquisition mode to 'SEQUENCE': acquires a single waveform and then stops
         self.inst.write('acquire:state 1')  # run
-        r = self.inst.query('*opc?')  # sync
         
         # data query
         bin_wave = self.inst.query_binary_values('curve?', datatype='b', container=np.array)
@@ -241,8 +240,6 @@ if __name__ == '__main__':
     scope.connect()
     
     color = {1:'orange', 2:'blue', 'mix':'red'}
-    
-    #scope.config()
     
     try:
         # retrieve waveform data
