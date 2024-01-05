@@ -36,7 +36,7 @@ class TBS1000:
         resources_list = rm.list_resources()
         
         for re in resources_list:
-            if 'INSTR' in re:
+            if 'USB' in re:
                 dev = rm.open_resource(re)
                 if self.keyword in dev.query('*idn?'):
                     self.inst = dev
