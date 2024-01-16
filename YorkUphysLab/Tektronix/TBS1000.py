@@ -70,7 +70,14 @@ class TBS1000:
 
         Returns:
             bool: True if the oscilloscope is successfully configured, False otherwise.
+
+        Raises:
+            TypeError: If any of the arguments are not of type str.
         """
+        if not all(isinstance(arg, str) for arg in (hscale, ch1scale, ch2scale, trig)):
+                raise TypeError("All arguments must be of type string.")
+
+        # Rest of the code...
         if self.is_connected():
             self.inst.write('*rst')  # reset the instrument to a known state.
             r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.

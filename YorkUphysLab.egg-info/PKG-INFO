@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: YorkUphysLab
-Version: 1.0.21
+Version: 1.0.22
 Summary: A Python package to control YU physics labs equipment
 Home-page: https://github.com/m-kareem/YorkUphysLab
 Author: Mohammad Kareem
@@ -37,3 +37,4 @@ Mohammad Kareem, Ph.D.
 Laboratory Technologist
 Department of Physics & Astronomy
 Faculty of Science | YORK UNIVERSITY
+4700 Keele Street, Toronto, Ontario, Canada M3J 1P3
