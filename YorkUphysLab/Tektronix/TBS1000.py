@@ -51,28 +51,40 @@ class TBS1000:
             self.inst.read_termination = self.read_termination
             self.inst.write_termination = self.write_termination
             self.inst.write('*cls') # clear Event Status Register (ESR)
-            self.config()
+            #self.config()
             return True
         else:
             logging.info('No Tektronix TBS scope was found!')
             return False
     
     #----------------------------------------------
-    def config(self):
+    def config(self, hscale='5E-3', ch1scale='50E-3', ch2scale='2', trig='CH2'):
+        """
+        Configures the Tektronix TBS oscilloscope with the specified settings.
+
+        Args:
+            hscale (str): Horizontal scale (time/division) setting in seconds. Default is '5E-3'.
+            ch1scale (str): CH1 vertical scale (voltage/division) setting in seconds. Default is '50E-3'.
+            ch2scale (str): CH2 vertical scale (voltage/division) setting in seconds. Default is '2'.
+            trig (str): Trigger source setting. Default is 'CH2'. Valid options are CH1 or CH2
+
+        Returns:
+            bool: True if the oscilloscope is successfully configured, False otherwise.
+        """
         if self.is_connected():
             self.inst.write('*rst')  # reset the instrument to a known state.
             r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.
             self.inst.write('autoset EXECUTE')  # autoset: automatically adjusts the oscilloscope's settings based on the input signal
             r = self.inst.query('*opc?')
-            self.inst.write('HORIZONTAL:MAIN:SCALE 5E-3')
+            self.inst.write(f'HORIZONTAL:MAIN:SCALE {hscale}') # set horizontal scale (time/division)
             r = self.inst.query('*opc?')
             self.inst.write('CH1:COUPLING AC')
             r = self.inst.query('*opc?')
-            self.inst.write('CH1:SCALE 50E-3')
+            self.inst.write(f'CH1:SCALE {ch1scale}') # set ch1 vertical scale (voltage/division)
             r = self.inst.query('*opc?')
-            self.inst.write('CH2:SCALE 2')
+            self.inst.write(f'CH2:SCALE {ch2scale}') # set ch2 vertical scale (voltage/division)
             r = self.inst.query('*opc?')
-            self.inst.write('TRIGGER:MAIN:EDGE:SOURCE CH2') # set trigger source to channel 2
+            self.inst.write(f'TRIGGER:MAIN:EDGE:SOURCE {trig}') # set trigger source to channel 2
             r = self.inst.query('*opc?')
             return True
         else:
@@ -190,7 +202,7 @@ class TBS1000:
     #----------------------------------------------
     def phase_shift(self, scaled_time, waveform_1, waveform_2, total_time, phase_shift):
         """
-        Apply phase shift to waveform_2 based on the given phase_shift value.
+        Apply phase shift to waveform_2 based on the given phase_shift value. To keep the length of the waveforms the same, the shifted waveforms and scaled_time are truncated.
         
         Parameters:
         scaled_time (array-like): Array of scaled time values.
@@ -203,20 +215,21 @@ class TBS1000:
         tuple: A tuple containing the shifted scaled_time, waveform_1, and shifted waveform_2.
         """
         
-        _, phase = divmod(phase_shift, 360)
-        # get period of waveform 2
-        period = self.get_period(2)
+        _, phase = divmod(phase_shift, 360)    
+        # get the period of waveform 2
+        period = self.get_period(channel=2)
         samples_in_period = int(period/total_time * len(waveform_2)) # number of samples in one period
         shift_samples = int((phase / 360) * samples_in_period) # number of samples to shift
-        
-        shifted_waveform_2 = np.roll(waveform_2, shift_samples)
 
-        return scaled_time[shift_samples:], waveform_1[shift_samples:], shifted_waveform_2[shift_samples:]
+        if shift_samples == 0:
+            return scaled_time, waveform_1, waveform_2
+        else:
+            return scaled_time[:-1*shift_samples], waveform_1[:-1*shift_samples], waveform_2[shift_samples:]
 
     #----------------------------------------------
-    def mix_waveforms(self, waveform_1, waveform_2):
+    def multiply_waveforms(self, waveform_1, waveform_2):
         """
-        Mixes two waveforms element-wise.
+        Multiplies (mixes) two waveforms element-wise.
 
         Args:
             waveform_1 (list): The first waveform.
@@ -226,8 +239,8 @@ class TBS1000:
             list: The resulting waveform after mixing.
         """
         if len(waveform_1) != len(waveform_2):
-            error = f"Waveforms must be the same length: {len(waveform_1)} != {len(waveform_2)}"
-            return error
+            logging.error(f"Waveforms must be the same length: {len(waveform_1)} != {len(waveform_2)}")
+            return None
 
         return [x*y for x,y in zip(waveform_1,waveform_2)]
 
@@ -237,7 +250,8 @@ if __name__ == '__main__':
     # create a scope object
     scope = TBS1000()
     # connect to the scope
-    scope.connect()
+    if scope.connect():
+        scope.config(ch1scale='2', ch2scale='2')
     
     color = {1:'orange', 2:'blue', 'mix':'red'}
     
@@ -245,15 +259,14 @@ if __name__ == '__main__':
         # retrieve waveform data
         scaled_time, scaled_wave_1, total_time = scope.get_data(channel=1)
         logging.info('ch 1 complete')
-        time.sleep(3)
+        time.sleep(1)
         scaled_time, scaled_wave_2, total_time = scope.get_data(channel=2)
-        #scaled_wave_2 = np.array(scaled_wave_2)
         logging.info('ch 2 complete')
         
-        phase_shift = 0
-        stime, wf1,wf2 = scope.phase_shift(scaled_time, scaled_wave_1, scaled_wave_2, total_time, phase_shift)
+        phi = 180
+        stime, wf1, wf2_shifted = scope.phase_shift(scaled_time, scaled_wave_1, scaled_wave_2, total_time, phi)
+        mix_wf = scope.multiply_waveforms(wf1, wf2_shifted)
 
-        mix_wf = scope.mix_waveforms(wf1, wf2)
         avg_mix_wf = np.average(mix_wf)*1000 # in mV
         
         # --plotting
@@ -262,11 +275,12 @@ if __name__ == '__main__':
         #pl.plot(scaled_time, scaled_wave_1, label=f'Ch 1', color=color[1])
         #y_max = max(scaled_wave_1)
 
-        #pl.plot(stime, wf1, label=f'Ch 1', color=color[1])
-        #pl.plot(stime, wf2, label=f'Ch 2', color=color[2])
-        pl.plot(stime, mix_wf, label=f'Mix', color=color['mix'])
-        y_max = max(mix_wf)
-        #y_max = max(max(wf1), max(wf2), max(mix_wf))
+        pl.plot(stime, wf1, label=f'Ch 1', color=color[1])
+        pl.plot(stime, wf2_shifted, label=f'Ch 2', color=color[2])
+        #pl.plot(stime, mix_wf, label=f'Mix', color=color['mix'])
+        
+        y_max = max(max(wf1), max(wf2_shifted))
+        #y_max = max(max(wf1), max(wf2_shifted), max(mix_wf))
        
         pl.ylim(top=y_max*1.5)
         pl.xlabel('time [ms]') # x label
@@ -276,7 +290,7 @@ if __name__ == '__main__':
         
         pl.rc('grid', linestyle=':', color='gray', linewidth=1)
         pl.grid(True)
-        pl.title(f'Lock-in Output: {round(avg_mix_wf,2)} mV,  $\Delta\phi: {phase_shift}\degree$', fontsize = 10)
+        pl.title(f'Lock-in Output: {round(avg_mix_wf,2)} mV,  $\Delta\phi: {phi}\degree$', fontsize = 10)
         #'''
         
     except ValueError as e:
