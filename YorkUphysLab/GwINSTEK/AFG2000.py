@@ -3,6 +3,9 @@ import time
 import serial.tools.list_ports
 import logging
 
+#----------------------------------------------
+logging.getLogger().setLevel(logging.INFO)
+
 class AFG2000:
     
     def __init__(self, emul=False, keyword='AFG', baudrate=9600, timeout=1, port=None) -> None:
@@ -21,15 +24,15 @@ class AFG2000:
             self.inst = self.port_search(self.keyword)
 
         if self.inst is not None:
-            print(f'Connected to {self.get_idn()}')
+            logging.info(f'Connected to {self.get_idn()}')
             return True
         else:
-            print('AFG Connection failed.')
+            logging.error('AFG Connection failed.')
             return False
     #---------------------------------------------------
 
     def port_search(self, keyword):
-        print('Searching for the device...')
+        logging.info('Searching for the device...')
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
             ser = serial.Serial(port, self.baudrate, timeout=self.timeout)
@@ -37,21 +40,21 @@ class AFG2000:
             idn = ser.readline().strip().decode('ascii')
             
             if keyword in idn:
-                print(f'"{keyword}" found in: {port}')
+                logging.info(f'"{keyword}" found in: {port}')
                 return ser
             else:
                 ser.close()
             
-        print(f'"{keyword}" is not found on any port')
+        logging.info(f'"{keyword}" is not found on any port')
         return None
     #---------------------------------------------------
 
     def close(self):
         if self.inst is not None and self.inst.is_open:
             self.inst.close()
-            print('AFG Connection closed.')
+            logging.info('AFG Connection closed.')
         else:
-            print('No active AFG connection to close.')
+            logging.info('No active AFG connection to close.')
     #---------------------------------------------------
     
     def is_connected(self):
@@ -66,7 +69,7 @@ class AFG2000:
             resp = self.inst.readline().strip().decode('ascii')
             return resp
         else:
-            print('AFG Connection is not established.')
+            logging.info('AFG Connection is not established.')
             return None
     #---------------------------------------------------
             

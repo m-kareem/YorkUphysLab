@@ -10,7 +10,7 @@ This member function applies a phase shift to the second waveform (`waveform_2`)
    - `waveform_1`: An array-like object representing the values of the first waveform.
    - `waveform_2`: An array-like object representing the values of the second waveform (to be phase-shifted).
    - `total_time`: A float representing the total time of the waveform.
-   - `phase_shift`: A float representing the phase shift value in degrees.
+   - `phi`: A float representing the phase shift value in degrees.
 
 2. **Calculate Phase in the Range [0, 360):**
    ```python

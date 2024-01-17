@@ -18,6 +18,7 @@ class TBS1000:
         write_termination (str): The write termination character for communication with the oscilloscope.
         inst (visa.Resource): The instrument resource representing the connected oscilloscope.
         is_open (bool): Indicates whether the oscilloscope connection is open or closed.
+        total_time (flote): total time span of the waveform in seconds
     """
     
     def __init__(self, keyword='TBS', timeout=10000, encoding = 'latin_1', read_termination = '\n') -> None:
@@ -29,6 +30,8 @@ class TBS1000:
 
         self.inst = None
         self.is_open = False
+
+        self.total_time = 0
 
     #----------------------------------------------
     def connect(self):
@@ -134,6 +137,7 @@ class TBS1000:
             
             if channel not in [1,2]:
                 raise ValueError("Channel must be 1 or 2")
+            
             self.inst.write('MEASUrement:IMMed:TYPE PERiod')
             self.inst.write(f'MEASUrement:IMMed:SOUrce CH{channel}')
             measured_period = self.inst.query('MEASUrement:IMMed:VALue?')
@@ -143,7 +147,7 @@ class TBS1000:
     #----------------------------------------------
     def get_data(self, channel):
         """
-        Retrieves the scaled time and waveform data from the oscilloscope for the specified channel.
+        Retrieves the scaled waveform data from the oscilloscope for the specified channel.
 
         Args:
             channel (int): The channel number (1 or 2) for which to retrieve the data.
@@ -152,7 +156,6 @@ class TBS1000:
             tuple: A tuple containing the following elements:
                 - scaled_time (numpy.ndarray): An array of scaled time values in milliseconds.
                 - scaled_wave (numpy.ndarray): An array of scaled waveform values.
-                - total_time (float): The total time span of the waveform in seconds.
         """
         if not self.is_connected():
             return None
@@ -204,53 +207,35 @@ class TBS1000:
         unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
         scaled_wave = (unscaled_wave - vpos) * vscale + voff
 
-        return scaled_time, scaled_wave, total_time
+        self.total_time = total_time
+        return scaled_time, scaled_wave
     
     #----------------------------------------------
-    def phase_shift(self, scaled_time, waveform_1, waveform_2, total_time, phase_shift):
+    def shift_phase(self, scaled_time, waveform_1, waveform_2, phi):
         """
-        Apply phase shift to waveform_2 based on the given phase_shift value. To keep the length of the waveforms the same, the shifted waveforms and scaled_time are truncated.
+        Apply phase shift to waveform_2 based on the given phi value. To keep the length of the waveforms the same, the shifted waveforms and scaled_time are truncated.
         
         Parameters:
         scaled_time (array-like): Array of scaled time values.
         waveform_1 (array-like): Array of waveform 1 values.
         waveform_2 (array-like): Array of waveform 2 values.
-        total_time (float): Total time of the waveform.
-        phase_shift (float): Phase shift value in degrees.
+        phi (float): Phase shift value in degrees.
         
         Returns:
         tuple: A tuple containing the shifted scaled_time, waveform_1, and shifted waveform_2.
         """
         
-        _, phase = divmod(phase_shift, 360)    
+        _, phase = divmod(phi, 360)    
         # get the period of waveform 2
         period = self.get_period(channel=2)
-        samples_in_period = int(period/total_time * len(waveform_2)) # number of samples in one period
+        samples_in_period = int(period/self.total_time * len(waveform_2)) # number of samples in one period
         shift_samples = int((phase / 360) * samples_in_period) # number of samples to shift
 
         if shift_samples == 0:
             return scaled_time, waveform_1, waveform_2
         else:
             return scaled_time[:-1*shift_samples], waveform_1[:-1*shift_samples], waveform_2[shift_samples:]
-
-    #----------------------------------------------
-    def multiply_waveforms(self, waveform_1, waveform_2):
-        """
-        Multiplies (mixes) two waveforms element-wise.
-
-        Args:
-            waveform_1 (list): The first waveform.
-            waveform_2 (list): The second waveform.
-
-        Returns:
-            list: The resulting waveform after mixing.
-        """
-        if len(waveform_1) != len(waveform_2):
-            logging.error(f"Waveforms must be the same length: {len(waveform_1)} != {len(waveform_2)}")
-            return None
-
-        return [x*y for x,y in zip(waveform_1,waveform_2)]
-
+    
 #==============================================================================
 # how to use this class
 if __name__ == '__main__':
@@ -264,15 +249,15 @@ if __name__ == '__main__':
     
     try:
         # retrieve waveform data
-        scaled_time, scaled_wave_1, total_time = scope.get_data(channel=1)
+        scaled_time, scaled_wave_1 = scope.get_data(channel=1)
         logging.info('ch 1 complete')
         time.sleep(1)
-        scaled_time, scaled_wave_2, total_time = scope.get_data(channel=2)
+        scaled_time, scaled_wave_2 = scope.get_data(channel=2)
         logging.info('ch 2 complete')
         
-        phi = 180
-        stime, wf1, wf2_shifted = scope.phase_shift(scaled_time, scaled_wave_1, scaled_wave_2, total_time, phi)
-        mix_wf = scope.multiply_waveforms(wf1, wf2_shifted)
+        phi = 0
+        stime, wf1, wf2_shifted = scope.shift_phase(scaled_time, scaled_wave_1, scaled_wave_2, phi)
+        mix_wf = [x*y for x,y in zip(wf1,wf2_shifted)]
 
         avg_mix_wf = np.average(mix_wf)*1000 # in mV
         
