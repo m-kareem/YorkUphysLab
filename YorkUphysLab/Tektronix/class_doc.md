@@ -1,7 +1,7 @@
 
 ## Tektronix TBS1000 Oscilloscope Class Documentation
 
-#### phase_shift()       
+#### phase_shift(scaled_time, waveform_1, waveform_2, total_time, phase_shift)       
 
 This member function applies a phase shift to the second waveform (`waveform_2`) based on a given phase shift value. The function takes several parameters and returns a tuple containing the time array (`scaled_time`), the original waveform 1 array (`waveform_1`), and the shifted waveform 2 array.
 
