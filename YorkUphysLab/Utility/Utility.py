@@ -2,8 +2,8 @@ import os
 import csv
 import logging
 
-from YorkUphysLab.Actuator import Actuator as ACT
-from YorkUphysLab.HVcontrol import HV_control as HV
+#from YorkUphysLab.Actuator import Actuator as ACT
+#from YorkUphysLab.HVcontrol import HV_control as HV
 #----------------------------------------------
 
 logging.getLogger().setLevel(logging.INFO)

@@ -17,7 +17,9 @@ class AFG2000:
     #---------------------------------------------------
     
     def connect(self):
-        
+        if self.inst is not None and self.inst.is_open:
+            logging.info('AFG Connection is already established.')
+            return True
         if self.port:
             self.inst = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
         else:
@@ -78,13 +80,22 @@ class AFG2000:
     #---------------------------------------------------
     
     def set_frequency(self, freq):
+        """
+        Sets the frequency of the AFG2000 function generator.
+
+        Parameters:
+        freq (float): The desired frequency in Hz.
+
+        Returns:
+        bool: True if the frequency is set successfully, False otherwise.
+        """
         if self.is_connected():
             self.send_cmd(f'SOUR1:FREQ {freq}')
             return True
         else:
             logging.info('AFG2000 function generator is not connected!')
             return False
-	#---------------------------------------------------
+    	#---------------------------------------------------
 	
     def set_waveform(self, waveform='SIN'):
         if self.is_connected():

@@ -211,6 +211,67 @@ class TBS1000:
         return scaled_time, scaled_wave
     
     #----------------------------------------------
+    def get_data2(self):
+        """
+        Retrieves waveform data from the Tektronix TBS1000 oscilloscope.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - scaled_time (numpy.ndarray): An array of scaled time values in milliseconds.
+                - scaled_wave[0] (numpy.ndarray): An array of scaled waveform data for channel 1.
+                - scaled_wave[1] (numpy.ndarray): An array of scaled waveform data for channel 2.
+        """
+        if not self.is_connected():
+            return None
+
+        scaled_wave = []
+
+        # acq config
+        self.inst.write('acquire:state RUN')  # RUN acquisition
+        self.inst.write('acquire:stopafter SEQUENCE')  # sets the acquisition mode to 'SEQUENCE': acquires a single waveform and then stops
+        self.inst.write('acquire:state 0')  # stop data acquisition
+
+        # io config
+        self.inst.write('header 0')
+        self.inst.write('data:encdg RIBINARY')
+
+        for channel in [1,2]:
+            # ch1
+            self.inst.write(f'data:source CH{channel}')
+            self.inst.write('data:start 1')  # first sample
+            record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
+            self.inst.write(f'data:stop {record}')  # last sample
+            self.inst.write('wfmpre:byt_nr 1')  # 1 byte per sample
+
+            # data query
+            bin_wave = self.inst.query_binary_values('curve?', datatype='b', container=np.array)
+            tscale = float(self.inst.query('wfmpre:xincr?'))  # retrieve scaling factors
+            tstart = float(self.inst.query('wfmpre:xzero?'))
+            vscale = float(self.inst.query('wfmpre:ymult?'))  # volts / level
+            voff = float(self.inst.query('wfmpre:yzero?'))  # reference voltage
+            vpos = float(self.inst.query('wfmpre:yoff?'))  # reference position (level)
+
+            # error checking
+            r = int(self.inst.query('*esr?'))
+            if r != 0b00000000:
+                logging.info('event status register: 0b{:08b}'.format(r))
+            r = self.inst.query('allev?').strip()
+            if 'No events' not in r:
+                logging.info(f'all event messages: {r}')
+
+            total_time = tscale * record  # create scaled vectors
+            tstop = tstart + total_time
+            scaled_time = np.linspace(tstart, tstop, num=record, endpoint=False) * 1000  # time in ms
+
+            unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
+            scaled_wave.append((unscaled_wave - vpos) * vscale + voff)
+
+            self.total_time = total_time
+
+        self.inst.write('acquire:state RUN')  # RUN acquisition
+
+        return scaled_time, scaled_wave[0], scaled_wave[1]
+    #----------------------------------------------
     def shift_phase(self, scaled_time, waveform_1, waveform_2, phi):
         """
         Apply phase shift to waveform_2 based on the given phi value. To keep the length of the waveforms the same, the shifted waveforms and scaled_time are truncated.
@@ -243,17 +304,13 @@ if __name__ == '__main__':
     scope = TBS1000()
     # connect to the scope
     if scope.connect():
-        scope.config(ch1scale='2', ch2scale='2')
+        scope.config(hscale='5E-3', ch1scale='2', ch2scale='2', trig='CH2')
     
     color = {1:'orange', 2:'blue', 'mix':'red'}
     
     try:
-        # retrieve waveform data
-        scaled_time, scaled_wave_1 = scope.get_data(channel=1)
-        logging.info('ch 1 complete')
-        time.sleep(1)
-        scaled_time, scaled_wave_2 = scope.get_data(channel=2)
-        logging.info('ch 2 complete')
+        # get data from the scope
+        scaled_time, scaled_wave_1, scaled_wave_2 = scope.get_data2()
         
         phi = 0
         stime, wf1, wf2_shifted = scope.shift_phase(scaled_time, scaled_wave_1, scaled_wave_2, phi)
