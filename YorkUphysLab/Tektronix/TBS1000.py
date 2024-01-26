@@ -32,6 +32,8 @@ class TBS1000:
         self.is_open = False
 
         self.total_time = 0
+        self.record = 0
+        
 
     #----------------------------------------------
     def connect(self):
@@ -145,6 +147,73 @@ class TBS1000:
             return float(measured_period) # in seconds
     
     #----------------------------------------------
+    def get_frequency(self, channel):
+            """
+            Get the frequency of the waveform on the specified channel.
+            
+            Args:
+                channel (int): The channel number (1 or 2).
+            Returns:
+                float: The measured frequency in Hz.
+            Raises:
+                ValueError: If the channel number is not 1 or 2.
+            """
+            
+            if channel not in [1,2]:
+                raise ValueError("Channel must be 1 or 2")
+            
+            self.inst.write('MEASUrement:IMMed:TYPE FREQUENCY')
+            self.inst.write(f'MEASUrement:IMMed:SOUrce CH{channel}')
+            measured_freq = self.inst.query('MEASUrement:IMMed:VALue?')
+            
+            return float(measured_freq) # in seconds
+
+    def get_amplitude(self, channel):
+            """
+            Get the amplitude of the waveform on the specified channel.
+            
+            Args:
+                channel (int): The channel number (1 or 2).
+            Returns:
+                float: The measured amplitude in V.
+            Raises:
+                ValueError: If the channel number is not 1 or 2.
+            """
+            
+            if channel not in [1,2]:
+                raise ValueError("Channel must be 1 or 2")
+            
+            self.inst.write('MEASUrement:IMMed:TYPE AMplitude')
+            self.inst.write(f'MEASUrement:IMMed:SOUrce CH{channel}')
+            measured_amplitude = self.inst.query('MEASUrement:IMMed:VALue?')
+            
+            return float(measured_amplitude) # in seconds
+    
+    def get_phase(self, channel):
+            """
+            Get the phase difference from the selected waveform to the designated waveform
+            
+            Args:
+                channel (int): The channel number (1 or 2).
+            Returns:
+                float: The measured phase in degrees.
+            Raises:
+                ValueError: If the channel number is not 1 or 2.
+            """
+            
+            if channel not in [1,2]:
+                raise ValueError("Channel must be 1 or 2")
+            
+            self.inst.write(f'MEASUrement:IMMed:SOUrce1 CH1')
+            self.inst.write(f'MEASUrement:IMMed:SOUrce2 CH2')
+            self.inst.write('MEASUrement:IMMed:TYPE PHAse')
+            measured_phase = self.inst.query('MEASUrement:IMMed:VALue?')
+            
+            if channel == 1:
+                return float(measured_phase) # in degrees
+            else:
+                return -1*float(measured_phase) # in degrees
+    #----------------------------------------------
     def get_data(self, channel):
         """
         Retrieves the scaled waveform data from the oscilloscope for the specified channel.
@@ -176,8 +245,8 @@ class TBS1000:
         self.inst.write('data:encdg RIBINARY')
         self.inst.write(f'data:source CH{channel}')
         self.inst.write('data:start 1')  # first sample
-        record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
-        self.inst.write(f'data:stop {record}')  # last sample
+        self.record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
+        self.inst.write(f'data:stop {self.record}')  # last sample
         self.inst.write('wfmpre:byt_nr 1')  # 1 byte per sample
         # acq config
         self.inst.write('acquire:state 0')  # stop data acquisition
@@ -200,9 +269,9 @@ class TBS1000:
         if 'No events' not in r:
             logging.info(f'all event messages: {r}')
 
-        total_time = tscale * record  # create scaled vectors
+        total_time = tscale * self.record  # create scaled vectors
         tstop = tstart + total_time
-        scaled_time = np.linspace(tstart, tstop, num=record, endpoint=False) * 1000  # time in ms
+        scaled_time = np.linspace(tstart, tstop, num=self.record, endpoint=False) * 1000  # time in ms
 
         unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
         scaled_wave = (unscaled_wave - vpos) * vscale + voff
@@ -239,8 +308,8 @@ class TBS1000:
             # ch1
             self.inst.write(f'data:source CH{channel}')
             self.inst.write('data:start 1')  # first sample
-            record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
-            self.inst.write(f'data:stop {record}')  # last sample
+            self.record = int(self.inst.query('wfmpre:nr_pt?'))  # number of samples
+            self.inst.write(f'data:stop {self.record}')  # last sample
             self.inst.write('wfmpre:byt_nr 1')  # 1 byte per sample
 
             # data query
@@ -259,9 +328,9 @@ class TBS1000:
             if 'No events' not in r:
                 logging.info(f'all event messages: {r}')
 
-            total_time = tscale * record  # create scaled vectors
+            total_time = tscale * self.record  # create scaled vectors
             tstop = tstart + total_time
-            scaled_time = np.linspace(tstart, tstop, num=record, endpoint=False) * 1000  # time in ms
+            scaled_time = np.linspace(tstart, tstop, num=self.record, endpoint=False) * 1000  # time in ms
 
             unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
             scaled_wave.append((unscaled_wave - vpos) * vscale + voff)
@@ -297,6 +366,27 @@ class TBS1000:
         else:
             return scaled_time[:-1*shift_samples], waveform_1[:-1*shift_samples], waveform_2[shift_samples:]
     
+    #----------------------------------------------
+    def shift_phase2(self, scaled_time, ref_channel, phi_shift):
+        """
+        Constructing an internal reference waveform with the given phase shift w.r.t the main waveform based on the given parameters.
+
+        Parameters:
+        scaled_time (float): The scaled time values for the waveform. Need to convert to sec.
+        ref_channel (str): The reference channel for obtaining the frequency.
+        phi_shift (float): The phase shift value in degrees.
+
+        Returns:
+        numpy.ndarray: The constructed waveform with the shifted phase.
+        """
+        
+        freq = self.get_frequency(ref_channel)
+        
+        # constructing a pure internal ref. wave
+        internal_ref_waveform = np.cos(2*np.pi*freq*scaled_time*0.001 + np.radians(phi_shift))
+
+        return internal_ref_waveform
+
 #==============================================================================
 # how to use this class
 if __name__ == '__main__':
@@ -304,17 +394,20 @@ if __name__ == '__main__':
     scope = TBS1000()
     # connect to the scope
     if scope.connect():
-        scope.config(hscale='5E-3', ch1scale='2', ch2scale='2', trig='CH2')
+        scope.config(hscale='5E-3', ch1scale='50E-3', ch2scale='2', trig='CH2')
     
     color = {1:'orange', 2:'blue', 'mix':'red'}
     
+    #"""
     try:
         # get data from the scope
         scaled_time, scaled_wave_1, scaled_wave_2 = scope.get_data2()
         
         phi = 0
-        stime, wf1, wf2_shifted = scope.shift_phase(scaled_time, scaled_wave_1, scaled_wave_2, phi)
-        mix_wf = [x*y for x,y in zip(wf1,wf2_shifted)]
+        #stime, wf1, wf2_shifted = scope.shift_phase(scaled_time, scaled_wave_1, scaled_wave_2, phi)
+        wf2_shifted = scope.shift_phase2(scaled_time, ref_channel=2, phi_shift = 330)
+
+        mix_wf = [x*y for x,y in zip(scaled_wave_1,wf2_shifted)]
 
         avg_mix_wf = np.average(mix_wf)*1000 # in mV
         
@@ -324,11 +417,11 @@ if __name__ == '__main__':
         #pl.plot(scaled_time, scaled_wave_1, label=f'Ch 1', color=color[1])
         #y_max = max(scaled_wave_1)
 
-        pl.plot(stime, wf1, label=f'Ch 1', color=color[1])
-        pl.plot(stime, wf2_shifted, label=f'Ch 2', color=color[2])
+        pl.plot(scaled_time, scaled_wave_1, label=f'Ch 1', color=color[1])
+        pl.plot(scaled_time, wf2_shifted, label=f'Ch 2', color=color[2])
         #pl.plot(stime, mix_wf, label=f'Mix', color=color['mix'])
         
-        y_max = max(max(wf1), max(wf2_shifted))
+        y_max = max(max(scaled_wave_1), max(wf2_shifted))
         #y_max = max(max(wf1), max(wf2_shifted), max(mix_wf))
        
         pl.ylim(top=y_max*1.5)
@@ -351,3 +444,6 @@ if __name__ == '__main__':
     print("\nlook for plot window...")
     pl.show()
     print("\nend of demonstration")
+    
+    
+    scope.close()
