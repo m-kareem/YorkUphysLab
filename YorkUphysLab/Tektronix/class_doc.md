@@ -1,53 +1,12 @@
 
 ## Tektronix TBS1000 Oscilloscope Class Documentation
-
-#### phase_shift(scaled_time, waveform_1, waveform_2, total_time, phase_shift)       
-
-This member function applies a phase shift to the second waveform (`waveform_2`) based on a given phase shift value. The function takes several parameters and returns a tuple containing the time array (`scaled_time`), the original waveform 1 array (`waveform_1`), and the shifted waveform 2 array.
-
-1. **Parameters:**
-   - `scaled_time`: An array-like object representing scaled time values.
-   - `waveform_1`: An array-like object representing the values of the first waveform.
-   - `waveform_2`: An array-like object representing the values of the second waveform (to be phase-shifted).
-   - `total_time`: A float representing the total time of the waveform.
-   - `phi`: A float representing the phase shift value in degrees.
-
-2. **Calculate Phase in the Range [0, 360):**
-   ```python
-   _, phase = divmod(phase_shift, 360)
-   ```
-   The function uses `divmod` to get the quotient and remainder when `phase_shift` is divided by 360. This operation ensures that `phase` is within the range [0, 360).
-
-3. **Calculate Period and Samples in One Period:**
-   ```python
-   period = self.get_period(channel=2)
-   samples_in_period = int(period/total_time * len(waveform_2))
-   ```
-   It calls a method `get_period(channel=2)` to obtain the period of the second waveform. Then, it calculates the number of samples in one period based on the total time and the length of `waveform_2`.
-
-4. **Calculate Shifted Samples:**
-   ```python
-   shift_samples = int((phase / 360) * samples_in_period)
-   ```
-   It calculates the number of samples to shift (`shift_samples`) in the waveform array based on the phase shift value and the number of samples in one period.
-
-5. **Check if Shift is Needed:**
-   If `shift_samples` is 0, then the function returns the original `scaled_time`, `waveform_1`, and `waveform_2` arrays.
-
-6. **Return Shifted Arrays:**
-   The function returns a tuple containing the `scaled_time`, the original `waveform_1` (not shifted), and the shifted `waveform_2`.
-
-   Note: The function returns the shifted arrays by slicing them based on the `shift_samples` value. `[:-1*shift_samples]` in `scaled_time` and `waveform_1`, cut out the last `shift_samples` elements of the arrays, while `[shift_samples:]` in `waveform_2` cuts out the first `shift_samples` elements of the array.
-
-
-   -----
+=======================================================================
 
 #### get_data(channel)
 
-This member function retrieves the scaled time and waveform data from the oscilloscope for the specified channel. It takes a single parameter `channel` and returns a tuple containing the following elements:
-- `scaled_time`: An array of scaled time values in milliseconds.
-- `scaled_wave`: An array of scaled waveform values.
-- `total_time`: The total time span of the waveform in seconds.
+This member function retrieves the waveform data from the oscilloscope for the specified channel. It takes a single parameter `channel` and returns a two-dimentional list(array) of the waveform containing the following elements:
+- `scaled_time`: An array of scaled time values in milliseconds, i.e., the x-axis values
+- `scaled_amplitude`: An array of scaled waveform values, i.e., the y-axis values
 
 1. **Check Connection:**
    ```python
@@ -120,15 +79,65 @@ This member function retrieves the scaled time and waveform data from the oscill
     ```
     The function creates a scaled time array by using the `np.linspace()` function to create an array of evenly spaced numbers between `tstart` and `tstop` with `record` number of elements. It then multiplies the array by 1000 to convert the time values from seconds to milliseconds.
 
-9. **Create Scaled Waveform Array:**
+9. **Create Scaled Amplitude Array:**
     ```python
-    unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
-    scaled_wave = (unscaled_wave - vpos) * vscale + voff
+    unscaled_amp = np.array(bin_wave, dtype='double')  # data type conversion
+    scaled_amp = (unscaled_amp - vpos) * vscale + voff
     ```
-    The function creates a scaled waveform array by converting the data type of `bin_wave` to `double` and then scaling the values using the scaling factors.
+    The function creates a scaled amplitude array by converting the data type of `bin_wave` to `double` and then scaling the values using the scaling factors.
     
 10. **Return Data:**
     ```python
-    return scaled_time, scaled_wave, total_time
+    waveform = np.zeros((2,len(scaled_amp)))
+    waveform[0] = scaled_time
+    waveform[1] = scaled_amp
+        
+    return waveform
     ```
-    The function returns a tuple containing the scaled time array, the scaled waveform array, and the total time span of the waveform.
+    The function returns a two-dimensional list containing the scaled time array and the scaled amplitude array, i.e., the waveform data.
+
+=======================================================================
+
+#### get_data2()
+This member function retrieves waveforms data from both channels of the oscilloscope. It returns a four-dimentional list(array) of the waveforms containing the following elements:
+- `scaled_time1`: An array of scaled time values in milliseconds for channel 1 (x-axis values)
+- `scaled_amplitude1`: An array of scaled amplitude values for channel 1 (y-axis values)
+- `scaled_time2`: An array of scaled time values in milliseconds for channel 2 (x-axis values)
+- `scaled_amplitude2`: An array of scaled amplitude values for channel 2 (y-axis values)
+
+The function follows the same steps as the `get_data(channel)` function for each channel and returns the waveforms for both channels. Note that the function reads the waveform data from both channels simultaneously by freezing the acquisition and querying the waveform data for each channel sequentially.
+
+=======================================================================
+
+#### phase_shift2(ref_waveform, ref_channel, phi_shift)       
+
+This member function applies a phase shift to the reference waveform (`ref_waveform`) based on a given phase shift value. The function takes several parameters and returns a two-dimensional waveform containing the time array (`scaled_time`) and the amplitude of the constructed pure internal reference
+
+1. **Parameters:**
+   - `ref_waveform`: A two-diemnsion array object representing the reference waveform.
+   - `ref_channel`: The reference channel number for obtaining the frequency, i.e., 1 or 2.
+   - `phi`: A float number representing the target phase shift in degrees.
+
+2. **Creating an empty two-dimensional array of the output:**
+   ```python
+   internal_ref_waveform = np.zeros((2,len(ref_waveform)))
+   ```
+   
+
+3. **Obtaining the frequency from the Oscillosope:**
+   ```python
+   freq = self.get_frequency(ref_channel)
+   ```
+   It calls a method `get_frequency(ref_channel)` to obtain the frequency of the reference channel.
+
+4. **Constructing the internal pure (analytical) reference waveform:**
+   ```python
+    internal_ref_waveform[0] = t
+    internal_ref_waveform[1] = np.cos(2*np.pi*freq*t*0.001 + np.radians(phi_shift))
+   ```
+   It assigns the time array part of the reference waveform as the first dimension of the `internal_ref_waveform` array. 
+   The second dimension is assigned analytically as: `A*Cos(2*pi*freq*t + phi)`, where A is the amplitude, freq is the frequency, t is the time array, and phi is the phase shift in radians.
+   
+   Finally, it returns the constructed two-dimensional internal reference waveform.
+
+=======================================================================

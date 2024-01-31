@@ -1,6 +1,5 @@
 import pyvisa
 import numpy as np
-import time
 import logging
 
 #----------------------------------------------
@@ -216,29 +215,20 @@ class TBS1000:
     #----------------------------------------------
     def get_data(self, channel):
         """
-        Retrieves the scaled waveform data from the oscilloscope for the specified channel.
+        Retrieves the waveform data from the oscilloscope for the specified channel.
 
         Args:
             channel (int): The channel number (1 or 2) for which to retrieve the data.
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - scaled_time (numpy.ndarray): An array of scaled time values in milliseconds.
-                - scaled_wave (numpy.ndarray): An array of scaled waveform values.
+            A two-dimentional list(array) of the waveform containing the following elements:
+            waveform[0]: An array of scaled time values in milliseconds, i.e., the x-axis values
+            waveform[1]: An array of scaled amplitude values in volts, i.e., the y-axis values
         """
         if not self.is_connected():
             return None
         if channel not in [1, 2]:
             raise ValueError("Channel must be 1 or 2")
-
-        scaled_wave = []
-        
-        """
-        self.inst.write('*rst')  # reset the instrument to a known state.
-        r = self.inst.query('*opc?')  # queries the instrument to check if it has completed the previous operation.
-        self.inst.write('autoset EXECUTE')  # autoset: automatically adjusts the oscilloscope's settings based on the input signal
-        r = self.inst.query('*opc?')
-        """
         
         # io config
         self.inst.write('header 0')
@@ -273,27 +263,33 @@ class TBS1000:
         tstop = tstart + total_time
         scaled_time = np.linspace(tstart, tstop, num=self.record, endpoint=False) * 1000  # time in ms
 
-        unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
-        scaled_wave = (unscaled_wave - vpos) * vscale + voff
+        unscaled_amp = np.array(bin_wave, dtype='double')  # data type conversion
+        scaled_amp = (unscaled_amp - vpos) * vscale + voff
 
         self.total_time = total_time
-        return scaled_time, scaled_wave
+
+        waveform = np.zeros((2,len(scaled_amp)))
+        waveform[0] = scaled_time
+        waveform[1] = scaled_amp
+        
+        return waveform
     
     #----------------------------------------------
     def get_data2(self):
         """
-        Retrieves waveform data from the Tektronix TBS1000 oscilloscope.
+        Retrieves waveforms data from both channels of the Tektronix TBS1000 oscilloscope, simultaneously.
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - scaled_time (numpy.ndarray): An array of scaled time values in milliseconds.
-                - scaled_wave[0] (numpy.ndarray): An array of scaled waveform data for channel 1.
-                - scaled_wave[1] (numpy.ndarray): An array of scaled waveform data for channel 2.
+            A four-dimentional list(array) of the waveforms containing the following elements:
+            waveform[0]: An array of scaled time values in milliseconds, i.e., the x-axis values, of channel 1
+            waveform[1]: An array of scaled amplitude values in volts, i.e., the y-axis values, of channel 1
+            waveform[2]: An array of scaled time values in milliseconds, i.e., the x-axis values, of channel 2
+            waveform[3]: An array of scaled amplitude values in volts, i.e., the y-axis values, of channel 2
         """
         if not self.is_connected():
             return None
 
-        scaled_wave = []
+        scaled_amp = []
 
         # acq config
         self.inst.write('acquire:state RUN')  # RUN acquisition
@@ -332,14 +328,22 @@ class TBS1000:
             tstop = tstart + total_time
             scaled_time = np.linspace(tstart, tstop, num=self.record, endpoint=False) * 1000  # time in ms
 
-            unscaled_wave = np.array(bin_wave, dtype='double')  # data type conversion
-            scaled_wave.append((unscaled_wave - vpos) * vscale + voff)
+            unscaled_amp = np.array(bin_wave, dtype='double')  # data type conversion
+            scaled_amp.append((unscaled_amp - vpos) * vscale + voff)
 
             self.total_time = total_time
 
+        waveform = np.zeros((4,len(scaled_amp[0])))
+        
+        
+        waveform[0] = scaled_time
+        waveform[1] = scaled_amp[0]
+        waveform[2] = scaled_time
+        waveform[3] = scaled_amp[1]
+
         self.inst.write('acquire:state RUN')  # RUN acquisition
 
-        return scaled_time, scaled_wave[0], scaled_wave[1]
+        return waveform
     #----------------------------------------------
     def shift_phase(self, scaled_time, waveform_1, waveform_2, phi):
         """
@@ -367,23 +371,26 @@ class TBS1000:
             return scaled_time[:-1*shift_samples], waveform_1[:-1*shift_samples], waveform_2[shift_samples:]
     
     #----------------------------------------------
-    def shift_phase2(self, scaled_time, ref_channel, phi_shift):
+    def shift_phase2(self, ref_waveform, ref_channel, phi_shift):
         """
         Constructing an internal reference waveform with the given phase shift w.r.t the main waveform based on the given parameters.
 
         Parameters:
-        scaled_time (float): The scaled time values for the waveform. Need to convert to sec.
-        ref_channel (str): The reference channel for obtaining the frequency.
+        ref_waveform (float): The oscilloscope's readout of the rwaveform (2-dimentional list) of the reference channel
+        ref_channel (str): The reference channel for obtaining the frequency
         phi_shift (float): The phase shift value in degrees.
 
         Returns:
-        numpy.ndarray: The constructed waveform with the shifted phase.
+        A two-dimentional list(array), with the first row element the time values and the second element being the constructed amplitude values with the shifted phase.
         """
-        
+        internal_ref_waveform = np.zeros((2,len(ref_waveform)))
+        t = ref_waveform[0]
         freq = self.get_frequency(ref_channel)
+        ampl = self.get_amplitude(ref_channel)
         
-        # constructing a pure internal ref. wave
-        internal_ref_waveform = np.cos(2*np.pi*freq*scaled_time*0.001 + np.radians(phi_shift))
+        # constructing a pure analytical internal ref. wave
+        internal_ref_waveform[0] = t
+        internal_ref_waveform[1] = ampl*np.cos(2*np.pi*freq*t*0.001 + np.radians(phi_shift))
 
         return internal_ref_waveform
 
