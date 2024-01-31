@@ -102,7 +102,6 @@ class TBS1000:
             logging.info('Tektronix TBS scope is not connected!')
             return False
 
-
     #----------------------------------------------
     def close(self):
         if self.is_connected():
@@ -277,14 +276,14 @@ class TBS1000:
     #----------------------------------------------
     def get_data2(self):
         """
-        Retrieves waveforms data from both channels of the Tektronix TBS1000 oscilloscope, simultaneously.
+        Retrieves waveforms data of both channels of the Tektronix TBS1000 oscilloscope, simultaneously.
 
         Returns:
-            A four-dimentional list(array) of the waveforms containing the following elements:
-            waveform[0]: An array of scaled time values in milliseconds, i.e., the x-axis values, of channel 1
-            waveform[1]: An array of scaled amplitude values in volts, i.e., the y-axis values, of channel 1
-            waveform[2]: An array of scaled time values in milliseconds, i.e., the x-axis values, of channel 2
-            waveform[3]: An array of scaled amplitude values in volts, i.e., the y-axis values, of channel 2
+            A two-dimentional list(array) of the waveform, for each channel, containing the following elements:
+            waveform[0]: An array of scaled time values in milliseconds, i.e., the x-axis values
+            waveform[1]: An array of scaled amplitude values in volts, i.e., the y-axis values
+
+            the returned values are in the following order: (waveform_1, waveform_2)
         """
         if not self.is_connected():
             return None
@@ -333,17 +332,18 @@ class TBS1000:
 
             self.total_time = total_time
 
-        waveform = np.zeros((4,len(scaled_amp[0])))
+        waveform_1 = np.zeros((2,len(scaled_amp[0])))
+        waveform_2 = np.zeros((2,len(scaled_amp[1])))
         
         
-        waveform[0] = scaled_time
-        waveform[1] = scaled_amp[0]
-        waveform[2] = scaled_time
-        waveform[3] = scaled_amp[1]
+        waveform_1[0] = scaled_time
+        waveform_1[1] = scaled_amp[0]
+        waveform_2[0] = scaled_time
+        waveform_2[1] = scaled_amp[1]
 
         self.inst.write('acquire:state RUN')  # RUN acquisition
 
-        return waveform
+        return waveform_1, waveform_2
     #----------------------------------------------
     def shift_phase(self, scaled_time, waveform_1, waveform_2, phi):
         """

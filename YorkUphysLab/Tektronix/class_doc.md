@@ -99,13 +99,13 @@ This member function retrieves the waveform data from the oscilloscope for the s
 =======================================================================
 
 #### get_data2()
-This member function retrieves waveforms data from both channels of the oscilloscope. It returns a four-dimentional list(array) of the waveforms containing the following elements:
-- `scaled_time1`: An array of scaled time values in milliseconds for channel 1 (x-axis values)
-- `scaled_amplitude1`: An array of scaled amplitude values for channel 1 (y-axis values)
-- `scaled_time2`: An array of scaled time values in milliseconds for channel 2 (x-axis values)
-- `scaled_amplitude2`: An array of scaled amplitude values for channel 2 (y-axis values)
+This member function retrieves waveforms data of both channels of the oscilloscope. It returns a two-dimentional list(array) of the waveform, for each channel, containing the following elements:
+- `scaled_time`: An array of scaled time values in milliseconds for channel 1 (x-axis values)
+- `scaled_amplitude`: An array of scaled amplitude values for channel 1 (y-axis values)
 
-The function follows the same steps as the `get_data(channel)` function for each channel and returns the waveforms for both channels. Note that the function reads the waveform data from both channels simultaneously by freezing the acquisition and querying the waveform data for each channel sequentially.
+The returned values are in the following order: (waveform_1, waveform_2).
+
+The function follows the same steps as the `get_data(channel)` function for each channel and returns the waveforms for both channels sequentially. Note that the function reads the waveform data from both channels simultaneously by freezing the acquisition and querying the waveform data for each channel individually.
 
 =======================================================================
 
